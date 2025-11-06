@@ -1,11 +1,49 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="com.circusscientist.smartpoicontrols" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>SmartPoi_Controls</name>
-    <description>Sample Apache Cordova App</description>
-    <author email="dev@cordova.apache.org" href="https://cordova.apache.org">
-        Apache Cordova Team
+    <description>Smart Poi LED Control Application</description>
+    <author email="dev@circusscientist.com" href="https://circusscientist.com">
+        Circus Scientist
     </author>
     <content src="index.html" />
+    
+    <!-- Allow access to local network devices -->
+    <access origin="http://*" />
+    <access origin="http://*.local" />
+    <access origin="http://192.168.*" />
+    <access origin="http://10.0.*" />
+    <access origin="http://172.16.*" />
+    <access origin="http://172.17.*" />
+    <access origin="http://172.18.*" />
+    <access origin="http://172.19.*" />
+    <access origin="http://172.20.*" />
+    <access origin="http://172.21.*" />
+    <access origin="http://172.22.*" />
+    <access origin="http://172.23.*" />
+    <access origin="http://172.24.*" />
+    <access origin="http://172.25.*" />
+    <access origin="http://172.26.*" />
+    <access origin="http://172.27.*" />
+    <access origin="http://172.28.*" />
+    <access origin="http://172.29.*" />
+    <access origin="http://172.30.*" />
+    <access origin="http://172.31.*" />
+    
+    <!-- Allow file system access for file selection -->
+    <preference name="AndroidPersistentFileLocation" value="Internal" />
+    <preference name="iosPersistentFileLocation" value="Library" />
+    
+    <!-- Network security configuration for Android -->
+    <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+        <application android:usesCleartextTraffic="true" />
+    </edit-config>
+    
+    <!-- Platform preferences -->
+    <preference name="loadUrlTimeoutValue" value="700000" />
+    <preference name="AndroidInsecureFileModeEnabled" value="true" />
+    
+    <!-- Intent handling -->
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
+    <allow-intent href="file://*/*" />
 </widget>
