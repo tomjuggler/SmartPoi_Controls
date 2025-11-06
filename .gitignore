@@ -1,3 +1,6 @@
+.aider*
+
+
 # Cordova-specific ignores
 platforms/
 plugins/
