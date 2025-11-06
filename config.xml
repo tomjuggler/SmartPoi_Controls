@@ -6,6 +6,8 @@
         Circus Scientist
     </author>
     <content src="index.html" />
+    <!-- Application icons -->
+    <icon src="res/ic_launcher-web.png" />
     
     <!-- Allow access to local network devices -->
     <access origin="http://*" />
