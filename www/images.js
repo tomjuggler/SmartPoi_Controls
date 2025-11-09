@@ -1,34 +1,168 @@
-// Drag and Drop Functions
-function handleDragStart(e) {
-    e.dataTransfer.setData('text/plain', e.target.dataset.fileName);
-    e.target.classList.add('dragging');
+// Long Press Functions
+let longPressTimer = null;
+let longPressTarget = null;
+
+function handleTouchStart(e) {
+    const wrapper = e.target.closest('.image-wrapper');
+    if (!wrapper) return;
+    
+    longPressTarget = wrapper;
+    longPressTimer = setTimeout(() => {
+        showContextMenu(wrapper);
+    }, 500); // 500ms for long press
 }
 
-function handleDragEnd(e) {
-    e.target.classList.remove('dragging');
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    const dragging = document.querySelector('.dragging');
-    if (!dragging) return;
-
-    // Get the closest valid drop container
-    const container = e.currentTarget.closest('.image-grid-container, #fileListContainer');
-    if (!container || !container.appendChild) return;
-
-    const afterElement = getDragAfterElement(container, e.clientY);
-
-    if (container && dragging && container instanceof Node && dragging instanceof Node) {
-        if (afterElement && afterElement.parentNode === container) {
-            container.insertBefore(dragging, afterElement);
-        } else if (dragging.parentNode !== container) {
-            container.appendChild(dragging);
-        }
+function handleTouchMove(e) {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
     }
+}
 
-    dragging.classList.remove('dragging');
-    updateFilesOrder();
+function handleTouchEnd(e) {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+}
+
+function showContextMenu(wrapper) {
+    // Remove any existing context menu
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+    
+    // Create context menu
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.innerHTML = `
+        <div class="menu-item" data-action="upload">Upload</div>
+        <div class="menu-item" data-action="delete">Delete</div>
+    `;
+    
+    // Position menu near the wrapper
+    const rect = wrapper.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.left = rect.left + 'px';
+    menu.style.top = rect.bottom + 'px';
+    menu.style.zIndex = '1000';
+    
+    // Add menu styles
+    menu.style.backgroundColor = 'white';
+    menu.style.border = '1px solid #ccc';
+    menu.style.borderRadius = '4px';
+    menu.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+    menu.style.padding = '8px 0';
+    
+    // Style menu items
+    const menuItems = menu.querySelectorAll('.menu-item');
+    menuItems.forEach(item => {
+        item.style.padding = '8px 16px';
+        item.style.cursor = 'pointer';
+        item.style.borderBottom = '1px solid #eee';
+        item.style.fontSize = '14px';
+        
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleMenuAction(item.dataset.action, wrapper);
+            menu.remove();
+        });
+        
+        // Hover effect
+        item.addEventListener('mouseenter', () => {
+            item.style.backgroundColor = '#f0f0f0';
+        });
+        item.addEventListener('mouseleave', () => {
+            item.style.backgroundColor = 'transparent';
+        });
+    });
+    
+    // Remove last border
+    menuItems[menuItems.length - 1].style.borderBottom = 'none';
+    
+    document.body.appendChild(menu);
+    
+    // Close menu when clicking outside
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+    
+    setTimeout(() => {
+        document.addEventListener('click', closeMenu);
+    }, 100);
+}
+
+function handleMenuAction(action, wrapper) {
+    const fileName = wrapper.dataset.fileName;
+    const ip = getIPFromContainer(wrapper.closest('.image-grid-container'));
+    
+    switch (action) {
+        case 'upload':
+            triggerFileUpload(wrapper, ip, fileName);
+            break;
+        case 'delete':
+            deleteImageFromPoi(ip, fileName);
+            break;
+    }
+}
+
+function getIPFromContainer(container) {
+    if (container.id === 'mainImageGrid') {
+        return state.poiIPs.mainIP;
+    } else if (container.id === 'auxImageGrid') {
+        return state.poiIPs.auxIP;
+    }
+    return null;
+}
+
+function triggerFileUpload(wrapper, ip, fileName) {
+    // Create hidden file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+    
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            handleImageUpload(file, ip, fileName);
+        }
+        fileInput.remove();
+    });
+    
+    document.body.appendChild(fileInput);
+    fileInput.click();
+}
+
+async function deleteImageFromPoi(ip, fileName) {
+    if (!confirm(`Are you sure you want to delete ${fileName}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`http://${ip}/edit?path=/${fileName}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            createMessage(`${fileName} deleted successfully`);
+            // Refresh the image to show black placeholder
+            const wrapper = document.querySelector(`[data-file-name="${fileName}"]`);
+            if (wrapper) {
+                const img = wrapper.querySelector('.poi-image');
+                img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+            }
+        } else {
+            throw new Error('Delete failed');
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        createMessage(`Failed to delete ${fileName}`, 'error');
+    }
 }
 
 function getDragAfterElement(container, y) {
@@ -93,11 +227,16 @@ function createBlackImages(containerId, ip) {
         wrapper.appendChild(imgElement);
         wrapper.appendChild(fileNameSpan);
         
-        // Drag handlers
-        wrapper.addEventListener('dragstart', handleDragStart);
-        wrapper.addEventListener('dragover', handleDragOver);
-        wrapper.addEventListener('drop', handleDrop);
-        wrapper.addEventListener('dragend', handleDragEnd);
+        // Touch handlers for long press
+        wrapper.addEventListener('touchstart', handleTouchStart);
+        wrapper.addEventListener('touchmove', handleTouchMove);
+        wrapper.addEventListener('touchend', handleTouchEnd);
+        
+        // Mouse handlers for desktop testing
+        wrapper.addEventListener('mousedown', handleTouchStart);
+        wrapper.addEventListener('mousemove', handleTouchMove);
+        wrapper.addEventListener('mouseup', handleTouchEnd);
+        wrapper.addEventListener('mouseleave', handleTouchEnd);
 
         // Click handler for preview
         wrapper.addEventListener('click', function() {
