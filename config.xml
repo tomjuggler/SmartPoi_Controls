@@ -48,4 +48,8 @@
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
     <allow-intent href="file://*/*" />
+
+    <!-- Splash Screen -->
+    <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/screen/android/splashscreen.xml" />
+    
 </widget>
