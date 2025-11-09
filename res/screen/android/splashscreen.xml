@@ -6,6 +6,6 @@
     <item
         android:width="192dp"
         android:height="192dp"
-        android:drawable="@drawable/ic_launcher"
+        android:drawable="@mipmap/ic_launcher"
         android:gravity="center" />
 </layer-list>

@@ -50,6 +50,8 @@
     <allow-intent href="file://*/*" />
 
     <!-- Splash Screen -->
-    <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/screen/android/splashscreen.xml" />
+    <platform name="android">
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/screen/android/splashscreen.xml" />
+    </platform>
     
 </widget>
