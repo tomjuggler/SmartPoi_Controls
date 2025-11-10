@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white"/>
+    <item android:drawable="@android:color/black"/>
     
-    <!-- Center the launcher icon -->
+    <!-- Make launcher image fill screen while maintaining aspect ratio -->
     <item
-        android:width="192dp"
-        android:height="192dp"
         android:drawable="@mipmap/ic_launcher"
-        android:gravity="center" />
+        android:gravity="fill" />
 </layer-list>

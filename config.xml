@@ -52,6 +52,6 @@
     <!-- Splash Screen -->
     <platform name="android">
         <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/screen/android/splashscreen.xml" />
+        <preference name="AndroidWindowSplashScreenBackground" value="#000000" />
     </platform>
-    
 </widget>
