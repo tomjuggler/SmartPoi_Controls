@@ -182,7 +182,6 @@ function getDragAfterElement(container, y) {
         }
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
-}
 
 function updateFilesOrder() {
     const fileList = document.getElementById('fileListContainer');
