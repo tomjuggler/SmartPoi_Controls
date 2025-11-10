@@ -434,6 +434,52 @@ function sanitizeFileName(name) {
 function validateFileName(name) {
     return /^[a-zA-Z0-9-_.]{1,50}\.bin$/i.test(name) ? name : null;
 }
+// Drag and drop handlers for file reordering
+function handleDragStart(e) {
+    e.target.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', e.target.dataset.index);
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    const dragging = document.querySelector('.dragging');
+    const container = document.getElementById('fileListContainer');
+    const afterElement = getDragAfterElement(container, e.clientY);
+
+    if(afterElement) {
+        container.insertBefore(dragging, afterElement);
+    } else {
+        container.appendChild(dragging);
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    updateFilesOrder();
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.draggable-file:not(.dragging)')];
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function updateFilesOrder() {
+    const fileList = document.getElementById('fileListContainer');
+    const files = Array.from(fileList.children).map(el => el.dataset.fileName);
+    console.log('Current file order:', files);
+}
 function initializeDragAndDrop() {
   const container = document.getElementById('fileListContainer');
 
