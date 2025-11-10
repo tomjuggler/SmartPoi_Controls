@@ -151,10 +151,14 @@ async function deleteImageFromPoi(ip, fileName) {
         if (response.ok) {
             createMessage(`${fileName} deleted successfully`);
             // Refresh the image to show black placeholder
-            const wrapper = document.querySelector(`[data-file-name="${fileName}"]`);
-            if (wrapper) {
-                const img = wrapper.querySelector('.poi-image');
-                img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+            const containerId = ip === state.poiIPs.mainIP ? 'mainImageGrid' : 'auxImageGrid';
+            const container = document.getElementById(containerId);
+            if (container) {
+                const wrapper = container.querySelector(`[data-file-name="${fileName}"]`);
+                if (wrapper) {
+                    const img = wrapper.querySelector('.poi-image');
+                    img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+                }
             }
         } else {
             throw new Error('Delete failed');
@@ -167,7 +171,6 @@ async function deleteImageFromPoi(ip, fileName) {
 
 function getDragAfterElement(container, y) {
     const draggableElements = [...container.querySelectorAll('.draggable-file:not(.dragging)')];
-
     return draggableElements.reduce((closest, child) => {
         const box = child.getBoundingClientRect();
         const offset = y - box.top - box.height / 2;
@@ -178,6 +181,7 @@ function getDragAfterElement(container, y) {
             return closest;
         }
     }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
 }
 
 function updateFilesOrder() {
