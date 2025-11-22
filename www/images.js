@@ -1,3 +1,32 @@
+// Pattern sending function for image activation
+async function sendPatternToBothPOIs(pattern) {
+    try {
+        // Send pattern to both POIs with timeout for backwards compatibility
+        const requests = [
+            fetch(`http://${state.poiIPs.mainIP}/pattern?patternChooserChange=${pattern}`, { 
+                method: 'GET',
+                signal: AbortSignal.timeout(2000) 
+            }).catch(error => {
+                console.log('Pattern request to main POI failed (backwards compatibility):', error.message);
+                // Don't show error message for timeout - device might not support this feature
+            }),
+            fetch(`http://${state.poiIPs.auxIP}/pattern?patternChooserChange=${pattern}`, { 
+                method: 'GET',
+                signal: AbortSignal.timeout(2000)
+            }).catch(error => {
+                console.log('Pattern request to aux POI failed (backwards compatibility):', error.message);
+                // Don't show error message for timeout - device might not support this feature
+            })
+        ];
+
+        await Promise.allSettled(requests);
+        createMessage(`Pattern ${pattern} activated`);
+    } catch (error) {
+        // This should only catch unexpected errors, not timeouts
+        console.error('Unexpected error sending pattern:', error);
+        // Don't show error message to maintain backwards compatibility
+    }
+}
 // Long Press Functions
 let longPressTimer = null;
 let longPressTarget = null;
@@ -241,8 +270,13 @@ function createBlackImages(containerId, ip) {
         wrapper.addEventListener('mouseup', handleTouchEnd);
         wrapper.addEventListener('mouseleave', handleTouchEnd);
 
-        // Click handler for preview
+        // Click handler for preview and pattern activation
         wrapper.addEventListener('click', function() {
+            // Send pattern HTTP request for this image (pattern 8-69)
+            const patternNumber = i + 8; // Map images to patterns 8-69
+            sendPatternToBothPOIs(patternNumber);
+            
+            // Also show the image preview (existing functionality)
             if (typeof window.decompressAndDisplay === 'function') {
                 window.decompressAndDisplay(ip, fileName);
             } else {
