@@ -216,6 +216,9 @@ function initializeUploadHandlers() {
     document.getElementById('uploadPixelInput').value = state.settings.pixels;
     document.getElementById('uploadCurrentPx').textContent = `Current px: ${state.settings.pixels}`;
 
+    // Ensure sequential upload to prevent concatenation issues
+    state.upload.config.BATCH_SIZE = 1;
+
     // File input handler
     document.getElementById('uploadFileInput').addEventListener('change', async function(e) {
         const container = document.getElementById('fileListContainer');
@@ -324,11 +327,15 @@ function initializeUploadHandlers() {
     document.getElementById('uploadBinButton').addEventListener('click', handleUpload);
 
     // WS/APA toggle handler
+    // WS/APA toggle handler
     document.getElementById('uploadWsApaBtn').addEventListener('click', function() {
         state.wsStrip = !state.wsStrip;
+        // Update stripType to match WS2812/APA102
+        state.stripType = state.wsStrip ? "WS2812" : "APA102";
         const indicator = document.getElementById('uploadWsApaIndicator');
-        indicator.textContent = `Current: ${state.wsStrip ? 'WS2812' : 'APA102'}`;
-        createMessage(`Switched to ${state.wsStrip ? 'WS2812 (compressed)' : 'APA102 (raw)'} mode`);
+        indicator.textContent = `Current: ${state.stripType}`;
+        createMessage(`Switched to ${state.stripType} mode`);
+        updateStripTypeIndicator(); // Update all indicators
         saveState();
     });
 
@@ -339,6 +346,7 @@ function initializeUploadHandlers() {
         updatePixelSize(); // Use the unified update function
         saveState();
     });
+    initializeDragAndDrop();
 }
 function createFileListItem(file, index) {
     const div = document.createElement('div');
@@ -477,8 +485,33 @@ function getDragAfterElement(container, y) {
 
 function updateFilesOrder() {
     const fileList = document.getElementById('fileListContainer');
-    const files = Array.from(fileList.children).map(el => el.dataset.fileName);
-    console.log('Current file order:', files);
+    const children = Array.from(fileList.children);
+    const newOrder = [];
+    const remainingFiles = [...state.upload.orderedFiles]; // shallow copy
+    
+    children.forEach((child, newIndex) => {
+        child.dataset.index = newIndex;
+        const fileName = child.dataset.fileName;
+        
+        // Find corresponding file object in remainingFiles
+        const fileIndex = remainingFiles.findIndex(f => f.name === fileName);
+        if (fileIndex !== -1) {
+            newOrder.push(remainingFiles[fileIndex]);
+            remainingFiles.splice(fileIndex, 1); // remove matched file
+        } else {
+            console.error('File not found in orderedFiles:', fileName);
+        }
+    });
+    
+    // If any files remain (should not happen), append them
+    if (remainingFiles.length > 0) {
+        console.warn('Some files were not in DOM, appending to end:', remainingFiles.map(f => f.name));
+        newOrder.push(...remainingFiles);
+    }
+    
+    // Update state with new order
+    state.upload.orderedFiles = newOrder;
+    console.log('Updated file order:', newOrder.map(f => f.name));
 }
 function initializeDragAndDrop() {
   const container = document.getElementById('fileListContainer');
