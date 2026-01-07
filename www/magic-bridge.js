@@ -242,7 +242,7 @@ async function uploadTimingsToPoi(timingsArray, ip, label) {
     const formData = new FormData();
     formData.append('body', JSON.stringify(timingsArray));
 
-    const response = await fetch(`http://${ip}/timingsettings`, {
+    const response = await fetch(`http://${ip}/timings`, {
       method: 'POST',
       body: formData
     });
