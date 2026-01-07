@@ -18,8 +18,9 @@ async function processAndUploadZip() {
         // Read and process ZIP file
         const zip = await JSZip.loadAsync(fileInput.files[0]);
 
-        // Check for images.json and parse it to get the image order
+        // Check for images.json and parse it to get the image order and timings
         let imageOrder = null;
+        let timingsArray = null;
         try {
             const jsonFile = zip.file("images.json");
             if (jsonFile) {
@@ -31,10 +32,14 @@ async function processAndUploadZip() {
                         return name.split('.')[0];
                     });
                 }
+                if (jsonData.times && Array.isArray(jsonData.times)) {
+                    timingsArray = jsonData.times;
+                }
             }
         } catch (error) {
             console.error('Error parsing images.json:', error);
             imageOrder = null; // Fall back to default order
+            timingsArray = null;
         }
 
         // Get all .bin files from the ZIP
@@ -118,6 +123,23 @@ async function processAndUploadZip() {
         }
 
         await Promise.all(uploadPromises);
+        
+        // Upload timings if available
+        if (timingsArray) {
+            // Warn if timings array length doesn't match number of images
+            if (timingsArray.length !== files.length) {
+                console.warn(`Timings array length (${timingsArray.length}) doesn't match number of images (${files.length})`);
+            }
+            const timingPromises = [];
+            if (mainAvailable) {
+                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.mainIP, 'Main POI'));
+            }
+            if (auxAvailable) {
+                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.auxIP, 'Aux POI'));
+            }
+            await Promise.allSettled(timingPromises); // Don't let timings failure break the flow
+        }
+        
         statusEl.textContent = 'Upload completed successfully!';
         statusEl.style.color = 'green';
     } catch (error) {
@@ -205,5 +227,37 @@ async function uploadToPoiWithProgress(files, ip, label) {
       stack: error.stack
     });
     throw error;
+  }
+}
+async function uploadTimingsToPoi(timingsArray, ip, label) {
+  const statusEl = document.getElementById('upload-status-standalone');
+  if (!timingsArray || !Array.isArray(timingsArray)) {
+    console.log('No timings array provided, skipping timings upload');
+    return;
+  }
+
+  try {
+    statusEl.textContent = `Uploading timings to ${label}...`;
+
+    const formData = new FormData();
+    formData.append('body', JSON.stringify(timingsArray));
+
+    const response = await fetch(`http://${ip}/timingsettings`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('Timings upload result:', result);
+    statusEl.textContent = `Timings uploaded to ${label} successfully`;
+
+  } catch (error) {
+    console.error(`Failed to upload timings to ${label}:`, error);
+    // Don't throw - timings failure shouldn't break the whole upload
+    statusEl.textContent = `Timings upload to ${label} failed: ${error.message}`;
   }
 }
