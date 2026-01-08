@@ -883,6 +883,17 @@ input[type="range"] {
 .pattern-buttons button:nth-child(5) { background-color: #ff00ff !important; }
 .pattern-buttons button:nth-child(6) { background-color: #00e1ff !important; }
 .pattern-buttons button:nth-child(7) { background-color: #3c3f3f !important; }
+.pattern-buttons button:nth-child(8) { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important; }
+.timeline-button {
+    border: 3px solid gold !important;
+    font-weight: bold !important;
+    box-shadow: 0 0 10px rgba(255,215,0,0.5) !important;
+}
+
+.timeline-button.active {
+    border-color: #2c7a47 !important;
+    box-shadow: 0 0 10px rgba(44,122,71,0.6) !important;
+}
 
 /* Control Tab Button Styles */
 #discoverBtn,
