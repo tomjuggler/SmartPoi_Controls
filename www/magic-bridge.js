@@ -128,7 +128,8 @@ async function processAndUploadZip() {
         if (timingsArray) {
             // Warn if timings array length doesn't match number of images
             if (timingsArray.length !== files.length) {
-                console.warn(`Timings array length (${timingsArray.length}) doesn't match number of images (${files.length})`);
+                console.warn(`Timings array length (${timingsArray.length}) doesn't match number of images (${files.length}), adjusting...`);
+                timingsArray = adjustTimingsArray(timingsArray, files.length);
             }
             const timingPromises = [];
             if (mainAvailable) {
@@ -239,12 +240,13 @@ async function uploadTimingsToPoi(timingsArray, ip, label) {
   try {
     statusEl.textContent = `Uploading timings to ${label}...`;
 
-    const formData = new FormData();
-    formData.append('body', JSON.stringify(timingsArray));
-
+    const jsonBody = JSON.stringify(timingsArray);
     const response = await fetch(`http://${ip}/timings`, {
       method: 'POST',
-      body: formData
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `body=${encodeURIComponent(jsonBody)}`
     });
 
     if (!response.ok) {
@@ -260,4 +262,24 @@ async function uploadTimingsToPoi(timingsArray, ip, label) {
     // Don't throw - timings failure shouldn't break the whole upload
     statusEl.textContent = `Timings upload to ${label} failed: ${error.message}`;
   }
+}
+function adjustTimingsArray(timingsArray, targetLength) {
+  if (timingsArray.length === targetLength) {
+    return timingsArray;
+  }
+
+  if (timingsArray.length > targetLength) {
+    // Truncate to target length
+    return timingsArray.slice(0, targetLength);
+  }
+
+  // Extend timings array by repeating the last interval
+  const result = [...timingsArray];
+  const lastTiming = result[result.length - 1];
+  let lastInterval = result.length >= 2 ? lastTiming - result[result.length - 2] : 1000; // default 1 second
+
+  while (result.length < targetLength) {
+    result.push(lastTiming + lastInterval * (result.length - timingsArray.length + 1));
+  }
+  return result;
 }
