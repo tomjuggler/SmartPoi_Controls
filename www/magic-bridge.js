@@ -1,4 +1,63 @@
 // Smart Magic Bridge functionality
+let uploadInProgress = false;
+let abortControllers = [];
+// Wrapper for fetch that adds abort controller
+async function fetchWithAbort(url, options = {}) {
+    const controller = new AbortController();
+    abortControllers.push(controller);
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        return response;
+    } catch (error) {
+        throw error;
+    } finally {
+        // Remove controller from array once request completes
+        const index = abortControllers.indexOf(controller);
+        if (index > -1) abortControllers.splice(index, 1);
+    }
+}
+
+// Cancel ongoing upload
+function cancelUpload() {
+    abortControllers.forEach(controller => controller.abort());
+    abortControllers = [];
+    uploadInProgress = false;
+    const fileInput = document.getElementById('zip-input');
+    fileInput.disabled = false;
+    const uploadBtn = document.getElementById('magic-bridge-upload');
+    uploadBtn.textContent = 'Try again';
+    uploadBtn.disabled = false;
+    const statusEl = document.getElementById('upload-status-standalone');
+    statusEl.textContent = 'Upload cancelled';
+    statusEl.style.color = 'orange';
+}
+
+// Clear file selection and reset UI
+function clearUpload() {
+    cancelUpload(); // Cancel any ongoing upload first
+    const fileInput = document.getElementById('zip-input');
+    fileInput.value = '';
+    fileInput.disabled = false;
+    document.getElementById('file-list').style.display = 'none';
+    const statusEl = document.getElementById('upload-status-standalone');
+    statusEl.textContent = '';
+    const uploadBtn = document.getElementById('magic-bridge-upload');
+    uploadBtn.textContent = 'Upload to POI';
+    const clearBtn = document.getElementById('magic-bridge-clear');
+    clearBtn.style.display = 'none';
+    uploadInProgress = false;
+}
+// Handle upload button click - toggle between start/cancel
+function toggleMagicBridgeUpload() {
+    if (uploadInProgress) {
+        cancelUpload();
+    } else {
+        processAndUploadZip();
+    }
+}
 async function processAndUploadZip() {
     const fileInput = document.getElementById('zip-input');
     const statusEl = document.getElementById('upload-status-standalone');
@@ -10,16 +69,27 @@ async function processAndUploadZip() {
         return;
     }
 
+    if (uploadInProgress) {
+        // Already uploading, should not happen because button text changed
+        return;
+    }
+    uploadInProgress = true;
+    fileInput.disabled = true;
+    const clearBtn = document.getElementById('magic-bridge-clear');
+    clearBtn.style.display = 'inline-block';
+    uploadBtn.textContent = 'Cancel';
+
     uploadBtn.disabled = true;
     statusEl.textContent = 'Processing ZIP file...';
     statusEl.style.color = 'inherit';
-
+    let uploadSuccess = false;
     try {
         // Read and process ZIP file
         const zip = await JSZip.loadAsync(fileInput.files[0]);
 
-        // Check for images.json and parse it to get the image order
+        // Check for images.json and parse it to get the image order and timings
         let imageOrder = null;
+        let timingsArray = null;
         try {
             const jsonFile = zip.file("images.json");
             if (jsonFile) {
@@ -31,10 +101,14 @@ async function processAndUploadZip() {
                         return name.split('.')[0];
                     });
                 }
+                if (jsonData.times && Array.isArray(jsonData.times)) {
+                    timingsArray = jsonData.times;
+                }
             }
         } catch (error) {
             console.error('Error parsing images.json:', error);
             imageOrder = null; // Fall back to default order
+            timingsArray = null;
         }
 
         // Get all .bin files from the ZIP
@@ -98,8 +172,8 @@ async function processAndUploadZip() {
 
         // Connectivity check
         [mainAvailable, auxAvailable] = await Promise.all([
-            verifyPoiConnection(state.poiIPs.mainIP),
-            verifyPoiConnection(state.poiIPs.auxIP)
+            verifyPoiConnectionMB(state.poiIPs.mainIP),
+            verifyPoiConnectionMB(state.poiIPs.auxIP)
         ]);
 
         if (!mainAvailable && !auxAvailable) {
@@ -108,7 +182,26 @@ async function processAndUploadZip() {
 
         statusEl.textContent = `Uploading ${files.length} files...`;
         
-        // Upload to available POIs
+        // Upload timings if available (before images)
+        if (timingsArray) {
+            // Warn if timings array length doesn't match number of images
+            if (timingsArray.length !== files.length) {
+                console.warn(`Timings array length (${timingsArray.length}) doesn't match number of images (${files.length}), adjusting...`);
+                timingsArray = adjustTimingsArray(timingsArray, files.length);
+            }
+            const timingPromises = [];
+            if (mainAvailable) {
+                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.mainIP, 'Main POI'));
+            }
+            if (auxAvailable) {
+                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.auxIP, 'Aux POI'));
+            }
+            await Promise.allSettled(timingPromises); // Don't let timings failure break the flow
+        }
+
+        statusEl.textContent = `Uploading ${files.length} files...`;
+        
+        // Upload images to available POIs
         const uploadPromises = [];
         if (mainAvailable) {
             uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.mainIP, 'Main POI'));
@@ -118,21 +211,34 @@ async function processAndUploadZip() {
         }
 
         await Promise.all(uploadPromises);
+        
         statusEl.textContent = 'Upload completed successfully!';
         statusEl.style.color = 'green';
+        uploadSuccess = true;
     } catch (error) {
         console.error('Upload error:', error);
         statusEl.textContent = `Upload failed: ${error.message}`;
         statusEl.style.color = 'red';
     } finally {
+        // Only update if upload wasn't already cancelled
+        if (uploadInProgress) {
+            uploadInProgress = false;
+            if (uploadSuccess) {
+                uploadBtn.textContent = 'Upload to POI';
+            } else {
+                uploadBtn.textContent = 'Try again';
+            }
+        }
         uploadBtn.disabled = false;
+        fileInput.disabled = false;
     }
 }
 
-async function verifyPoiConnection(ip) {
+async function verifyPoiConnectionMB(ip) {
   // New simplified check that just verifies basic connectivity
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 2000);
+  abortControllers.push(controller);
 
   try {
     // Try HEAD request first as it's lighter
@@ -163,6 +269,8 @@ async function verifyPoiConnection(ip) {
     }
   } finally {
     clearTimeout(timeoutId);
+    const index = abortControllers.indexOf(controller);
+    if (index > -1) abortControllers.splice(index, 1);
   }
 }
 
@@ -185,7 +293,7 @@ async function uploadToPoiWithProgress(files, ip, label) {
         const formData = new FormData();
         formData.append('file', file, targetName);
         
-        await fetch(`http://${ip}/edit`, {
+        await fetchWithAbort(`http://${ip}/edit`, {
           method: 'POST',
           body: formData
         });
@@ -206,4 +314,57 @@ async function uploadToPoiWithProgress(files, ip, label) {
     });
     throw error;
   }
+}
+async function uploadTimingsToPoi(timingsArray, ip, label) {
+  const statusEl = document.getElementById('upload-status-standalone');
+  if (!timingsArray || !Array.isArray(timingsArray)) {
+    console.log('No timings array provided, skipping timings upload');
+    return;
+  }
+
+  try {
+    statusEl.textContent = `Uploading timings to ${label}...`;
+
+    const jsonBody = JSON.stringify(timingsArray);
+    const response = await fetchWithAbort(`http://${ip}/timings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `body=${encodeURIComponent(jsonBody)}`
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('Timings upload result:', result);
+    statusEl.textContent = `Timings uploaded to ${label} successfully`;
+
+  } catch (error) {
+    console.error(`Failed to upload timings to ${label}:`, error);
+    // Don't throw - timings failure shouldn't break the whole upload
+    statusEl.textContent = `Timings upload to ${label} failed: ${error.message}`;
+  }
+}
+function adjustTimingsArray(timingsArray, targetLength) {
+  if (timingsArray.length === targetLength) {
+    return timingsArray;
+  }
+
+  if (timingsArray.length > targetLength) {
+    // Truncate to target length
+    return timingsArray.slice(0, targetLength);
+  }
+
+  // Extend timings array by repeating the last interval
+  const result = [...timingsArray];
+  const lastTiming = result[result.length - 1];
+  let lastInterval = result.length >= 2 ? lastTiming - result[result.length - 2] : 1000; // default 1 second
+
+  while (result.length < targetLength) {
+    result.push(lastTiming + lastInterval * (result.length - timingsArray.length + 1));
+  }
+  return result;
 }

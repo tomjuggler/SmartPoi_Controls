@@ -15,6 +15,7 @@ window.controlsSubmitPattern = async function(pattern) {
   }
 }
 
+window.submitPattern = window.controlsSubmitPattern;
 function initializePatternControls() {
   document.querySelectorAll('.pattern-buttons button').forEach(button => {
     button.addEventListener('click', handlePatternSelection);
@@ -29,7 +30,7 @@ function handlePatternSelection(event) {
 
 function highlightActiveButton(pattern) {
   document.querySelectorAll('.pattern-buttons button').forEach(btn => {
-    if (btn && pattern && pattern >= 1 && pattern <= 7) {
+    if (btn && pattern && ((pattern >= 1 && pattern <= 7) || pattern == '70' || pattern == '0')) {
       btn.classList.toggle('active', btn.dataset.pattern === pattern.toString());
     }
   });

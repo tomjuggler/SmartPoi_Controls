@@ -45,6 +45,8 @@
                         <button data-pattern="5" onclick="submitPattern('5')">IMG 1-52</button>
                         <button data-pattern="6" onclick="submitPattern('6')">On/Off Switch</button>
                         <button data-pattern="7" onclick="submitPattern('7')">LEDs OFF</button>
+                        <button data-pattern="70" onclick="submitPattern('70')" class="timeline-button">Timeline</button>
+                        <button data-pattern="0" onclick="submitPattern('0')" class="udp-button">UDP Mode</button>
                     </div>
                 </div>
 
@@ -292,7 +294,10 @@
                         <ul id="file-names"></ul>
                     </div>
                     <br>
-                    <button id="magic-bridge-upload">Upload to POI</button>
+                    <div class="button-group">
+                        <button id="magic-bridge-upload">Upload to POI</button>
+                        <button id="magic-bridge-clear" class="dark-button" style="display:none;">Clear</button>
+                    </div>
                     <div id="upload-status-standalone" style="margin-top: 10px;"></div>
                 </div>
             </div>
@@ -352,8 +357,8 @@
     <script src="image-processing.js"></script>
     <script src="images.js"></script>
     <script src="upload.js"></script>
-    <script src="main.js"></script>
     <script src="magic-bridge.js"></script>
+    <script src="main.js"></script>
     <div class="message-modal" id="messageModal"></div>
     
     <!-- Custom Compression Modal -->

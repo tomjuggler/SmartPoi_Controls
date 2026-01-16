@@ -451,5 +451,27 @@ document.addEventListener('DOMContentLoaded', () => {
     updateNetworkModeDisplay();
 
     // Initialize magic bridge upload button
-    document.getElementById('magic-bridge-upload').addEventListener('click', processAndUploadZip);
+    document.getElementById('magic-bridge-upload').addEventListener('click', toggleMagicBridgeUpload);
+    // Initialize clear button
+    document.getElementById('magic-bridge-clear').addEventListener('click', clearUpload);
+    // Show clear button when file selected
+    document.getElementById('zip-input').addEventListener('change', () => {
+        const clearBtn = document.getElementById('magic-bridge-clear');
+        const hasFile = document.getElementById('zip-input').files[0];
+        clearBtn.style.display = hasFile ? 'inline-block' : 'none';
+        
+        // Reset UI for new file selection
+        if (hasFile) {
+            // Hide file list from previous upload
+            document.getElementById('file-list').style.display = 'none';
+            // Clear status message
+            const statusEl = document.getElementById('upload-status-standalone');
+            statusEl.textContent = '';
+            // Reset button text if not currently uploading
+            if (!uploadInProgress) {
+                const uploadBtn = document.getElementById('magic-bridge-upload');
+                uploadBtn.textContent = 'Upload to POI';
+            }
+        }
+    });
 });
