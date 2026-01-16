@@ -182,18 +182,7 @@ async function processAndUploadZip() {
 
         statusEl.textContent = `Uploading ${files.length} files...`;
         
-        // Upload to available POIs
-        const uploadPromises = [];
-        if (mainAvailable) {
-            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.mainIP, 'Main POI'));
-        }
-        if (auxAvailable) {
-            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.auxIP, 'Aux POI'));
-        }
-
-        await Promise.all(uploadPromises);
-        
-        // Upload timings if available
+        // Upload timings if available (before images)
         if (timingsArray) {
             // Warn if timings array length doesn't match number of images
             if (timingsArray.length !== files.length) {
@@ -209,6 +198,19 @@ async function processAndUploadZip() {
             }
             await Promise.allSettled(timingPromises); // Don't let timings failure break the flow
         }
+
+        statusEl.textContent = `Uploading ${files.length} files...`;
+        
+        // Upload images to available POIs
+        const uploadPromises = [];
+        if (mainAvailable) {
+            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.mainIP, 'Main POI'));
+        }
+        if (auxAvailable) {
+            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.auxIP, 'Aux POI'));
+        }
+
+        await Promise.all(uploadPromises);
         
         statusEl.textContent = 'Upload completed successfully!';
         statusEl.style.color = 'green';
