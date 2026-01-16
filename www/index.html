@@ -294,7 +294,10 @@
                         <ul id="file-names"></ul>
                     </div>
                     <br>
-                    <button id="magic-bridge-upload">Upload to POI</button>
+                    <div class="button-group">
+                        <button id="magic-bridge-upload">Upload to POI</button>
+                        <button id="magic-bridge-clear" class="dark-button" style="display:none;">Clear</button>
+                    </div>
                     <div id="upload-status-standalone" style="margin-top: 10px;"></div>
                 </div>
             </div>
@@ -354,8 +357,8 @@
     <script src="image-processing.js"></script>
     <script src="images.js"></script>
     <script src="upload.js"></script>
-    <script src="main.js"></script>
     <script src="magic-bridge.js"></script>
+    <script src="main.js"></script>
     <div class="message-modal" id="messageModal"></div>
     
     <!-- Custom Compression Modal -->
