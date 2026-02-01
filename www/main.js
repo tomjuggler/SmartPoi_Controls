@@ -313,13 +313,6 @@ async function getFileListTwo() {
 // Tab swipe detection
 const TAB_ORDER = ['controls', 'images', 'upload', 'files', 'about', 'magic-bridge'];
 
-// Swipe detection variables
-let touchStartX = 0;
-let touchStartY = 0;
-let touchEndX = 0;
-let isDragging = false;
-const SWIPE_THRESHOLD = 50; // minimum pixels for swipe
-
 function switchToTab(tabName) {
     // Find button for this tab
     const button = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
@@ -355,59 +348,77 @@ function handleSwipeRight() {
 }
 
 function setupSwipeDetection() {
-    const container = document.body;
+    console.log('Setting up swipe detection');
     
-    // Check if we're currently dragging an element
-    function isDraggingElement() {
-        // Check for elements with draggable="true" or certain classes
-        const draggableElements = document.querySelectorAll('[draggable="true"], .dragging, .image-grid-container.dragging');
-        return draggableElements.length > 0;
-    }
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isTouching = false;
+    const SWIPE_THRESHOLD = 50;
     
-    container.addEventListener('touchstart', (e) => {
-        if (isDraggingElement()) return;
-        const touch = e.changedTouches[0];
+    // Add event listeners to the whole document
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchcancel', handleTouchCancel);
+    
+    function handleTouchStart(e) {
+        // Skip if touching a button or input
+        const tag = e.target.tagName;
+        if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+            return;
+        }
+        
+        const touch = e.touches[0];
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
-        isDragging = true;
-    });
+        isTouching = true;
+        console.log('Touch started at:', touchStartX, touchStartY);
+    }
     
-    container.addEventListener('touchmove', (e) => {
-        if (!isDragging || isDraggingElement()) return;
-        // Only prevent default for horizontal movements
-        const touch = e.changedTouches[0];
-        const horizontalMovement = Math.abs(touch.clientX - touchStartX);
-        const verticalMovement = Math.abs(touch.clientY - touchStartY);
-        if (horizontalMovement > verticalMovement) {
-            e.preventDefault(); // Prevent scrolling while swiping horizontally
-        }
-    });
-    
-    container.addEventListener('touchend', (e) => {
-        if (!isDragging || isDraggingElement()) return;
-        touchEndX = e.changedTouches[0].screenX;
-        isDragging = false;
+    function handleTouchMove(e) {
+        if (!isTouching) return;
         
-        const swipeDistance = touchEndX - touchStartX;
+        const touch = e.touches[0];
+        const deltaX = Math.abs(touch.clientX - touchStartX);
+        const deltaY = Math.abs(touch.clientY - touchStartY);
         
-        // Detect swipe with threshold
-        if (Math.abs(swipeDistance) > SWIPE_THRESHOLD) {
-            if (swipeDistance > 0) {
-                // Right swipe (finger moved right)
-                handleSwipeRight();
-            } else {
-                // Left swipe (finger moved left)
-                handleSwipeLeft();
-            }
-        }
-    });
-    
-    // Prevent vertical scrolling interference
-    container.addEventListener('touchmove', (e) => {
-        if (isDragging && Math.abs(e.changedTouches[0].clientX - touchStartX) > Math.abs(e.changedTouches[0].clientY - touchStartY)) {
+        // If horizontal movement is dominant, prevent default to stop scrolling
+        if (deltaX > deltaY && deltaX > 10) {
             e.preventDefault();
         }
-    }, { passive: false });
+    }
+    
+    function handleTouchEnd(e) {
+        if (!isTouching) return;
+        
+        const touch = e.changedTouches[0];
+        const touchEndX = touch.clientX;
+        const touchEndY = touch.clientY;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = Math.abs(touchEndY - touchStartY);
+        
+        console.log(`Touch ended: deltaX=${deltaX}, deltaY=${deltaY}`);
+        
+        // Check if it's a horizontal swipe
+        if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > SWIPE_THRESHOLD) {
+            console.log(`Swipe detected: ${deltaX > 0 ? 'RIGHT' : 'LEFT'} (${Math.abs(deltaX)}px)`);
+            
+            if (deltaX > 0) {
+                handleSwipeRight();
+            } else {
+                handleSwipeLeft();
+            }
+            
+            e.preventDefault();
+        }
+        
+        isTouching = false;
+    }
+    
+    function handleTouchCancel() {
+        isTouching = false;
+    }
 }
 
 // Tab management
