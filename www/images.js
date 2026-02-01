@@ -347,10 +347,7 @@ async function updatePixelsOnBoth() {
     
     if (!mainRes.ok || !auxRes.ok) throw new Error('Pixel update failed');
     
-    state.settings.pixels = parseInt(pixels, 10);
-    document.getElementById('pixelInput').value = state.settings.pixels;
-    document.getElementById('currentPx').textContent = `Current px: ${state.settings.pixels}`;
-    saveState();
+    updateAllPixelDisplays(parseInt(pixels, 10));
     
     createMessage(`Pixels updated to ${state.settings.pixels}`);
     refreshAllImages(true); // Force full refresh
@@ -422,12 +419,16 @@ async function fetchInitialPixels() {
     const mainPixels = await fetchNumberOfPixels(state.poiIPs.mainIP);
     const auxPixels = await fetchNumberOfPixels(state.poiIPs.auxIP);
     
-    // Always show current state, even if values differ between POIs
-    state.settings.pixels = mainPixels || state.settings.pixels;
-    document.getElementById('pixelInput').value = state.settings.pixels;
-    document.getElementById('currentPx').textContent = `Current px: ${state.settings.pixels}`;
+    // If both POIs respond, use main POI as primary, but update displays for both
+    if (mainPixels !== null) {
+      updatePixelDisplayForPoi('main', mainPixels);
+    }
+    if (auxPixels !== null) {
+      updatePixelDisplayForPoi('aux', auxPixels);
+    }
     
-    if (mainPixels !== auxPixels) {
+    // Warn if values differ between POIs
+    if (mainPixels !== null && auxPixels !== null && mainPixels !== auxPixels) {
       createMessage('Warning: Main and Aux POIs have different pixel counts!', 'warning');
     }
   } catch (error) {
