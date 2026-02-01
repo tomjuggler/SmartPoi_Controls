@@ -513,9 +513,16 @@ function setupImageHandlers() {
     grid.removeEventListener('drop', handleImageDrop);
   });
 
-  // Initialize image grids with current IPs
-  createBlackImages('mainImageGrid', state.poiIPs.mainIP);
-  createBlackImages('auxImageGrid', state.poiIPs.auxIP);
+  // Initialize image grids with current IPs only if empty
+  const mainGrid = document.getElementById('mainImageGrid');
+  const auxGrid = document.getElementById('auxImageGrid');
+  
+  if (mainGrid && mainGrid.children.length === 0) {
+    createBlackImages('mainImageGrid', state.poiIPs.mainIP);
+  }
+  if (auxGrid && auxGrid.children.length === 0) {
+    createBlackImages('auxImageGrid', state.poiIPs.auxIP);
+  }
 
   // Add new drag handlers to containers
   document.querySelectorAll('.image-grid-container').forEach(grid => {
