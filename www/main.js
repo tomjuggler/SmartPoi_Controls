@@ -310,23 +310,111 @@ async function getFileListTwo() {
 }
 
 
+// Tab swipe detection
+const TAB_ORDER = ['controls', 'images', 'upload', 'files', 'about', 'magic-bridge'];
+
+// Swipe detection variables
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let isDragging = false;
+const SWIPE_THRESHOLD = 50; // minimum pixels for swipe
+
+function switchToTab(tabName) {
+    // Find button for this tab
+    const button = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
+    if (button) {
+        // Update active tab button
+        document.querySelectorAll('.tab-button').forEach(btn => 
+            btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        // Update tab content
+        state.currentTab = tabName;
+        document.querySelectorAll('.tab-content').forEach(content => 
+            content.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        
+        // Load content if needed
+        loadTabContent(tabName);
+    }
+}
+
+function handleSwipeLeft() {
+    const currentIndex = TAB_ORDER.indexOf(state.currentTab);
+    if (currentIndex < TAB_ORDER.length - 1) {
+        switchToTab(TAB_ORDER[currentIndex + 1]);
+    }
+}
+
+function handleSwipeRight() {
+    const currentIndex = TAB_ORDER.indexOf(state.currentTab);
+    if (currentIndex > 0) {
+        switchToTab(TAB_ORDER[currentIndex - 1]);
+    }
+}
+
+function setupSwipeDetection() {
+    const container = document.body;
+    
+    // Check if we're currently dragging an element
+    function isDraggingElement() {
+        // Check for elements with draggable="true" or certain classes
+        const draggableElements = document.querySelectorAll('[draggable="true"], .dragging, .image-grid-container.dragging');
+        return draggableElements.length > 0;
+    }
+    
+    container.addEventListener('touchstart', (e) => {
+        if (isDraggingElement()) return;
+        const touch = e.changedTouches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        isDragging = true;
+    });
+    
+    container.addEventListener('touchmove', (e) => {
+        if (!isDragging || isDraggingElement()) return;
+        // Only prevent default for horizontal movements
+        const touch = e.changedTouches[0];
+        const horizontalMovement = Math.abs(touch.clientX - touchStartX);
+        const verticalMovement = Math.abs(touch.clientY - touchStartY);
+        if (horizontalMovement > verticalMovement) {
+            e.preventDefault(); // Prevent scrolling while swiping horizontally
+        }
+    });
+    
+    container.addEventListener('touchend', (e) => {
+        if (!isDragging || isDraggingElement()) return;
+        touchEndX = e.changedTouches[0].screenX;
+        isDragging = false;
+        
+        const swipeDistance = touchEndX - touchStartX;
+        
+        // Detect swipe with threshold
+        if (Math.abs(swipeDistance) > SWIPE_THRESHOLD) {
+            if (swipeDistance > 0) {
+                // Right swipe (finger moved right)
+                handleSwipeRight();
+            } else {
+                // Left swipe (finger moved left)
+                handleSwipeLeft();
+            }
+        }
+    });
+    
+    // Prevent vertical scrolling interference
+    container.addEventListener('touchmove', (e) => {
+        if (isDragging && Math.abs(e.changedTouches[0].clientX - touchStartX) > Math.abs(e.changedTouches[0].clientY - touchStartY)) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+}
+
 // Tab management
 function setupTabNavigation() {
     document.querySelectorAll('.tab-button').forEach(button => {
         button.addEventListener('click', () => {
-            // Update active tab button
-            document.querySelectorAll('.tab-button').forEach(btn => 
-                btn.classList.remove('active'));
-            button.classList.add('active');
-            
-            // Update tab content
-            state.currentTab = button.dataset.tab;
-            document.querySelectorAll('.tab-content').forEach(content => 
-                content.classList.remove('active'));
-            document.getElementById(state.currentTab).classList.add('active');
-            
-            // Load content if needed
-            loadTabContent(state.currentTab);
+            switchToTab(button.dataset.tab);
         });
     });
 }
@@ -409,6 +497,7 @@ function init() {
     loadState();
     initializeUploadHandlers();
     setupTabNavigation();
+    setupSwipeDetection();
     initializeNetworkDiscovery();
     setupImageHandlers();
     initializeModal();
