@@ -129,7 +129,7 @@ function initializeFetchButton() {
             passwordMain.dataset.actualPassword = mainData.password;
             document.getElementById('channel').textContent = mainData.channel;
             document.getElementById('pattern').textContent = mainData.pattern;
-            document.getElementById('pixels').textContent = mainData.pixels;
+            updatePixelDisplayForPoi('main', mainData.pixels);
 
             // Update Aux POI Display
             document.getElementById('routerTwo').textContent = auxData.router;
@@ -138,7 +138,7 @@ function initializeFetchButton() {
             passwordAux.dataset.actualPassword = auxData.password;
             document.getElementById('channelTwo').textContent = auxData.channel;
             document.getElementById('patternTwo').textContent = auxData.pattern;
-            document.getElementById('pixelsTwo').textContent = auxData.pixels;
+            updatePixelDisplayForPoi('aux', auxData.pixels);
 
             // Restore inputs if they were cleared
             document.getElementById('routerInput').value = currentRouter || mainData.router;
@@ -156,7 +156,7 @@ function initializeFetchButton() {
                 document.getElementById('router').textContent = mainData.router;
                 document.getElementById('channel').textContent = mainData.channel;
                 document.getElementById('pattern').textContent = mainData.pattern;
-                document.getElementById('pixels').textContent = mainData.pixels || '?';
+                updatePixelDisplayForPoi('main', mainData.pixels || '?');
 
                 // Then update state
                 state.settings.router = mainData.router;
@@ -181,7 +181,7 @@ function initializeFetchButton() {
                 document.getElementById('routerTwo').textContent = state.settings.routerTwo;
                 document.getElementById('channelTwo').textContent = state.settings.channelTwo;
                 document.getElementById('patternTwo').textContent = state.settings.patternTwo;
-                document.getElementById('pixelsTwo').textContent = state.settings.pixelsTwo || '?';
+                updatePixelDisplayForPoi('aux', state.settings.pixelsTwo || '?');
             }
             highlightActiveButton(mainData.pattern);
             // Force UI refresh
@@ -201,7 +201,7 @@ function initializeFetchButton() {
             passwordMain.dataset.actualPassword = state.settings.password;
             document.getElementById('channel').textContent = state.settings.channel;
             document.getElementById('pattern').textContent = state.settings.pattern;
-            document.getElementById('pixels').textContent = state.settings.pixels || '?';
+            updatePixelDisplayForPoi('main', state.settings.pixels || '?');
             
             // Also update aux POI display to show asterisks
             const passwordAux = document.getElementById('passwordTwo');
@@ -310,23 +310,122 @@ async function getFileListTwo() {
 }
 
 
+// Tab swipe detection
+const TAB_ORDER = ['controls', 'images', 'upload', 'files', 'about', 'magic-bridge'];
+
+function switchToTab(tabName) {
+    // Find button for this tab
+    const button = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
+    if (button) {
+        // Update active tab button
+        document.querySelectorAll('.tab-button').forEach(btn => 
+            btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        // Update tab content
+        state.currentTab = tabName;
+        document.querySelectorAll('.tab-content').forEach(content => 
+            content.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        
+        // Load content if needed
+        loadTabContent(tabName);
+    }
+}
+
+function handleSwipeLeft() {
+    const currentIndex = TAB_ORDER.indexOf(state.currentTab);
+    if (currentIndex < TAB_ORDER.length - 1) {
+        switchToTab(TAB_ORDER[currentIndex + 1]);
+    }
+}
+
+function handleSwipeRight() {
+    const currentIndex = TAB_ORDER.indexOf(state.currentTab);
+    if (currentIndex > 0) {
+        switchToTab(TAB_ORDER[currentIndex - 1]);
+    }
+}
+
+function setupSwipeDetection() {
+    console.log('Setting up swipe detection');
+    
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isTouching = false;
+    const SWIPE_THRESHOLD = 50;
+    
+    // Add event listeners to the whole document
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchcancel', handleTouchCancel);
+    
+    function handleTouchStart(e) {
+        // Skip if touching a button or input
+        const tag = e.target.tagName;
+        if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+            return;
+        }
+        
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        isTouching = true;
+        console.log('Touch started at:', touchStartX, touchStartY);
+    }
+    
+    function handleTouchMove(e) {
+        if (!isTouching) return;
+        
+        const touch = e.touches[0];
+        const deltaX = Math.abs(touch.clientX - touchStartX);
+        const deltaY = Math.abs(touch.clientY - touchStartY);
+        
+        // If horizontal movement is dominant, prevent default to stop scrolling
+        if (deltaX > deltaY && deltaX > 10) {
+            e.preventDefault();
+        }
+    }
+    
+    function handleTouchEnd(e) {
+        if (!isTouching) return;
+        
+        const touch = e.changedTouches[0];
+        const touchEndX = touch.clientX;
+        const touchEndY = touch.clientY;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = Math.abs(touchEndY - touchStartY);
+        
+        console.log(`Touch ended: deltaX=${deltaX}, deltaY=${deltaY}`);
+        
+        // Check if it's a horizontal swipe
+        if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > SWIPE_THRESHOLD) {
+            console.log(`Swipe detected: ${deltaX > 0 ? 'RIGHT' : 'LEFT'} (${Math.abs(deltaX)}px)`);
+            
+            if (deltaX > 0) {
+                handleSwipeRight();
+            } else {
+                handleSwipeLeft();
+            }
+            
+            e.preventDefault();
+        }
+        
+        isTouching = false;
+    }
+    
+    function handleTouchCancel() {
+        isTouching = false;
+    }
+}
+
 // Tab management
 function setupTabNavigation() {
     document.querySelectorAll('.tab-button').forEach(button => {
         button.addEventListener('click', () => {
-            // Update active tab button
-            document.querySelectorAll('.tab-button').forEach(btn => 
-                btn.classList.remove('active'));
-            button.classList.add('active');
-            
-            // Update tab content
-            state.currentTab = button.dataset.tab;
-            document.querySelectorAll('.tab-content').forEach(content => 
-                content.classList.remove('active'));
-            document.getElementById(state.currentTab).classList.add('active');
-            
-            // Load content if needed
-            loadTabContent(state.currentTab);
+            switchToTab(button.dataset.tab);
         });
     });
 }
@@ -409,6 +508,7 @@ function init() {
     loadState();
     initializeUploadHandlers();
     setupTabNavigation();
+    setupSwipeDetection();
     initializeNetworkDiscovery();
     setupImageHandlers();
     initializeModal();

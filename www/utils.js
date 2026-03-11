@@ -108,6 +108,43 @@ async function fetchNumberOfPixels(ip) {
     }
 }
 
+function updateAllPixelDisplays(pixelCount) {
+    // Handle unavailable pixel count (null, undefined, or '?')
+    const displayCount = (pixelCount === null || pixelCount === undefined || pixelCount === '?') ? '?' : pixelCount;
+    const inputValue = (pixelCount === null || pixelCount === undefined || pixelCount === '?') ? '' : pixelCount;
+    
+    // Update global state (store actual value, even if null)
+    state.settings.pixels = pixelCount;
+    
+    // Update all UI elements that depend on global pixel count
+    const pixelInput = document.getElementById('pixelInput');
+    const uploadPixelInput = document.getElementById('uploadPixelInput');
+    const currentPx = document.getElementById('currentPx');
+    const uploadCurrentPx = document.getElementById('uploadCurrentPx');
+    
+    if (pixelInput) pixelInput.value = inputValue;
+    if (uploadPixelInput) uploadPixelInput.value = inputValue;
+    if (currentPx) currentPx.textContent = `Current px: ${displayCount}`;
+    if (uploadCurrentPx) uploadCurrentPx.textContent = `Current px: ${displayCount}`;
+    
+    // Save state to persist the pixel count
+    saveState();
+}
+
+function updatePixelDisplayForPoi(poiType, pixelCount) {
+    // Update display for specific POI (main or aux)
+    if (poiType === 'main') {
+        state.settings.pixels = pixelCount;
+        updateAllPixelDisplays(pixelCount);
+    } else if (poiType === 'aux') {
+        // Handle unavailable pixel count for aux POI
+        const displayCount = (pixelCount === null || pixelCount === undefined || pixelCount === '?') ? '?' : pixelCount;
+        state.settings.pixelsTwo = pixelCount;
+        const pixelsTwoEl = document.getElementById('pixelsTwo');
+        if (pixelsTwoEl) pixelsTwoEl.textContent = displayCount;
+    }
+}
+
 function sliderToValue(sliderPercent) {
     return sliderPercent <= 50 ? 
         0.5 + Math.floor((sliderPercent / 50) * 60) * 0.5 : 
@@ -152,79 +189,7 @@ function saveState() {
     }));
 }
 
-function loadState() {
-    // Get saved state safely
-    let saved = {};
-    try {
-        const savedString = localStorage.getItem('poiState');
-        if (savedString) {
-            saved = JSON.parse(savedString);
-        }
-    } catch (e) {
-        console.error('Failed to parse saved state, using defaults', e);
-    }
 
-    // Load router mode state - WITH DEFAULTS
-    state.poiIPs.routerMode = saved.poiIPs?.routerMode || false;
-    state.poiIPs.savedRouterIPs = saved.poiIPs?.savedRouterIPs || {
-        main: "192.168.1.1",
-        aux: "192.168.1.78"
-    };
-
-    // Set IPs based on current mode
-    if (state.poiIPs.routerMode) {
-        state.poiIPs.mainIP = saved.poiIPs?.mainIP || "192.168.1.1";
-        state.poiIPs.auxIP = saved.poiIPs?.auxIP || "192.168.1.78";
-    } else {
-        state.poiIPs.mainIP = "192.168.1.1";
-        state.poiIPs.auxIP = "192.168.1.78";
-    }
-
-    // Initialize manual IP inputs with current values
-    const mainIpInput = document.getElementById('manualMainIp');
-    const auxIpInput = document.getElementById('manualAuxIp');
-    
-    mainIpInput.value = state.poiIPs.mainIP;
-    mainIpInput.placeholder = state.poiIPs.mainIP;
-    auxIpInput.value = state.poiIPs.auxIP;
-    auxIpInput.placeholder = state.poiIPs.auxIP;
-
-    // Update UI elements
-    document.getElementById('routerModeCheckbox').checked = state.poiIPs.routerMode;
-    updateNetworkModeDisplay();
-    
-    // Handle migration from old wsStrip
-    if (saved.wsStrip !== undefined) {
-        state.stripType = saved.wsStrip ? "WS2812" : "APA102";
-    } else {
-        state.stripType = saved.stripType || "WS2812";
-    }
-    state.customCompression = saved.customCompression || 50;
-    
-    state.poiIPs = { ...state.poiIPs, ...saved.poiIPs };
-    state.settings = { ...state.settings, ...saved.settings };
-    
-    // Load credentials from saved state
-    document.getElementById('routerInput').value = saved.settings?.router || '';
-    document.getElementById('passwordInput').value = saved.settings?.password || '';
-    
-    // Initialize WS/APA indicator
-    updateStripTypeIndicator();
-    
-    // Update UI elements with persisted state
-    // Initialize router IP input
-    const routerInput = document.getElementById('routerIpInput');
-    routerInput.placeholder = '192.168.1.1';
-    if (state.poiIPs.subnet) {
-        routerInput.value = state.poiIPs.subnet + "1";
-    }
-    
-    // Update both pixel inputs and displays
-    document.getElementById('pixelInput').value = state.settings.pixels;
-    document.getElementById('uploadPixelInput').value = state.settings.pixels;
-    document.getElementById('currentPx').textContent = `Current px: ${state.settings.pixels}`;
-    document.getElementById('uploadCurrentPx').textContent = `Current px: ${state.settings.pixels}`;
-}
 
 function generateUploadBinFilename(index) {
     const char = UPLOAD_BIN_CHARS.charAt(index);

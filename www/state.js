@@ -126,14 +126,11 @@ function loadState() {
         }
     }
     
-    // Update both pixel inputs and displays
-    const pixelInput = document.getElementById('pixelInput');
-    const uploadPixelInput = document.getElementById('uploadPixelInput');
-    const currentPx = document.getElementById('currentPx');
-    const uploadCurrentPx = document.getElementById('uploadCurrentPx');
+    // Update pixel displays using unified function
+    updateAllPixelDisplays(state.settings.pixels);
     
-    if (pixelInput) pixelInput.value = state.settings.pixels;
-    if (uploadPixelInput) uploadPixelInput.value = state.settings.pixels;
-    if (currentPx) currentPx.textContent = `Current px: ${state.settings.pixels}`;
-    if (uploadCurrentPx) uploadCurrentPx.textContent = `Current px: ${state.settings.pixels}`;
+    // Update aux POI pixel display if available
+    if (state.settings.pixelsTwo !== undefined) {
+        updatePixelDisplayForPoi('aux', state.settings.pixelsTwo);
+    }
 }

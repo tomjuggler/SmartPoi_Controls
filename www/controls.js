@@ -164,7 +164,7 @@ function initializeFetchButton() {
             passwordMain.dataset.actualPassword = mainData.password;
             document.getElementById('channel').textContent = mainData.channel;
             document.getElementById('pattern').textContent = mainData.pattern;
-            document.getElementById('pixels').textContent = mainData.pixels;
+            updatePixelDisplayForPoi('main', mainData.pixels);
 
             // Update Aux POI Display
             document.getElementById('routerTwo').textContent = auxData.router;
@@ -173,7 +173,7 @@ function initializeFetchButton() {
             passwordAux.dataset.actualPassword = auxData.password;
             document.getElementById('channelTwo').textContent = auxData.channel;
             document.getElementById('patternTwo').textContent = auxData.pattern;
-            document.getElementById('pixelsTwo').textContent = auxData.pixels;
+            updatePixelDisplayForPoi('aux', auxData.pixels);
 
             // Restore inputs if they were cleared
             document.getElementById('routerInput').value = currentRouter || mainData.router;
@@ -191,7 +191,7 @@ function initializeFetchButton() {
                 document.getElementById('router').textContent = mainData.router;
                 document.getElementById('channel').textContent = mainData.channel;
                 document.getElementById('pattern').textContent = mainData.pattern;
-                document.getElementById('pixels').textContent = mainData.pixels || '?';
+                updatePixelDisplayForPoi('main', mainData.pixels || '?');
 
                 // Then update state
                 state.settings.router = mainData.router;
@@ -216,7 +216,7 @@ function initializeFetchButton() {
                 document.getElementById('routerTwo').textContent = state.settings.routerTwo;
                 document.getElementById('channelTwo').textContent = state.settings.channelTwo;
                 document.getElementById('patternTwo').textContent = state.settings.patternTwo;
-                document.getElementById('pixelsTwo').textContent = state.settings.pixelsTwo || '?';
+                updatePixelDisplayForPoi('aux', state.settings.pixelsTwo || '?');
             }
             highlightActiveButton(mainData.pattern);
             // Force UI refresh
@@ -236,7 +236,7 @@ function initializeFetchButton() {
             passwordMain.dataset.actualPassword = state.settings.password;
             document.getElementById('channel').textContent = state.settings.channel;
             document.getElementById('pattern').textContent = state.settings.pattern;
-            document.getElementById('pixels').textContent = state.settings.pixels || '?';
+            updatePixelDisplayForPoi('main', state.settings.pixels || '?');
             
             // Also update aux POI display to show asterisks
             const passwordAux = document.getElementById('passwordTwo');

@@ -213,8 +213,7 @@ async function processFileWithRetry(fileData, ip, label) {
 
 function initializeUploadHandlers() {
     // Initialize upload tab inputs with current state
-    document.getElementById('uploadPixelInput').value = state.settings.pixels;
-    document.getElementById('uploadCurrentPx').textContent = `Current px: ${state.settings.pixels}`;
+    updateAllPixelDisplays(state.settings.pixels);
 
     // Ensure sequential upload to prevent concatenation issues
     state.upload.config.BATCH_SIZE = 1;
