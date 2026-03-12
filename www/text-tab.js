@@ -462,6 +462,7 @@ const TextTab = (function() {
                     targetIp = auxIp;
                 }
                 
+                if (!targetIp) {
                     statusElement.textContent = 'No IP configured';
                     statusElement.className = 'status-indicator offline';
                     return;
