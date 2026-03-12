@@ -470,6 +470,13 @@ const TextTab = (function() {
         }
     }
     
+    // Enable upload button
+    function enableUploadButton() {
+        if (elements.uploadBtn) {
+            elements.uploadBtn.disabled = false;
+        }
+    }
+    
     // Show status message
     function showStatus(message, type = 'info') {
         if (elements.uploadStatus) {
