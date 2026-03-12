@@ -311,7 +311,7 @@ async function getFileListTwo() {
 
 
 // Tab swipe detection
-const TAB_ORDER = ['controls', 'images', 'upload', 'files', 'about', 'magic-bridge'];
+const TAB_ORDER = ['controls', 'images', 'upload', 'text', 'files', 'about', 'magic-bridge'];
 
 function switchToTab(tabName) {
     // Find button for this tab
@@ -430,6 +430,37 @@ function setupTabNavigation() {
     });
 }
 
+// Load text tab content
+async function loadTextTabContent() {
+    const textTab = document.getElementById('text');
+    if (!textTab) return;
+    
+    // Check if content is already loaded
+    if (textTab.children.length === 0) {
+        try {
+            // Load the text tab HTML content
+            const response = await fetch('text-tab.html');
+            if (!response.ok) throw new Error('Failed to load text tab content');
+            
+            const html = await response.text();
+            textTab.innerHTML = html;
+            
+            // Initialize the TextTab module
+            if (typeof TextTab !== 'undefined' && typeof TextTab.init === 'function') {
+                TextTab.init();
+            }
+        } catch (error) {
+            console.error('Error loading text tab:', error);
+            textTab.innerHTML = '<div class="error-message">Failed to load text tab content. Please refresh the page.</div>';
+        }
+    } else {
+        // Content already loaded, just ensure TextTab is initialized
+        if (typeof TextTab !== 'undefined' && typeof TextTab.init === 'function') {
+            TextTab.init();
+        }
+    }
+}
+
 // Load tab-specific content
 function loadTabContent(tabName) {
     if (tabName === 'controls') {
@@ -438,6 +469,9 @@ function loadTabContent(tabName) {
     } else if (tabName === 'images') {
         setupImageHandlers();
         refreshAllImages();
+    } else if (tabName === 'text') {
+        // Load and initialize text tab
+        loadTextTabContent();
     } else if (tabName === 'files') {
         // Initialize any list-specific functionality
     }
