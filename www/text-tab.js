@@ -612,9 +612,9 @@ const TextTab = (function() {
         }
         
         // Draw border
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(1, 1, width - 2, height - 2);
+        // ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        // ctx.lineWidth = 2;
+        // ctx.strokeRect(1, 1, width - 2, height - 2);
         
         // Update dimensions display
         updateCanvasDimensions();
