@@ -285,32 +285,72 @@ const TextTab = (function() {
             // Convert canvas to File object
             const file = await getCanvasAsFile(filename);
             
-            // Get POI IP based on selection
-            let targetIp;
-            if (selectedPoi === 'main') {
-                targetIp = window.state?.poiIPs?.mainIP;
-            } else if (selectedPoi === 'aux') {
-                targetIp = window.state?.poiIPs?.auxIP;
+            // Get POI IPs from global state
+            const mainIp = state?.poiIPs?.mainIP || '192.168.1.1';
+            const auxIp = state?.poiIPs?.auxIP || '192.168.1.78';
+            
+            // Determine which POIs to upload to
+            const uploadToMain = selectedPoi === 'main' || selectedPoi === 'both';
+            const uploadToAux = selectedPoi === 'aux' || selectedPoi === 'both';
+            
+            // Collect target IPs
+            const targetIps = [];
+            if (uploadToMain && mainIp) targetIps.push({ip: mainIp, name: 'Main POI'});
+            if (uploadToAux && auxIp) targetIps.push({ip: auxIp, name: 'Aux POI'});
+            
+            if (targetIps.length === 0) {
+                throw new Error('No POI IP addresses configured');
             }
             
             if (!targetIp) {
                 throw new Error(`No IP address found for ${selectedPoi} POI`);
             }
             
-            // Simple upload function
-            showStatus(`Uploading to ${selectedPoi} POI...`, 'info');
+            // Upload to all target POIs
+            let successCount = 0;
+            let errorCount = 0;
             
-            const formData = new FormData();
-            formData.append('file', file, filename);
+            for (const target of targetIps) {
+                try {
+                    showStatus(`Uploading to ${target.name}...`, 'info');
+                    
+                    const formData = new FormData();
+                    formData.append('file', file, filename);
+                    
+                    // Add timeout to upload request
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                    
+                    const response = await fetch(`http://${target.ip}/edit`, {
+                        method: 'POST',
+                        body: formData,
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Upload failed: ${response.statusText}`);
+                    }
+                    
+                    successCount++;
+                    showStatus(`Uploaded to ${target.name} ✓`, 'success');
+                    
+                } catch (error) {
+                    console.error(`Upload failed for ${target.name}:`, error);
+                    errorCount++;
+                    showStatus(`Failed to upload to ${target.name}: ${error.message}`, 'error');
+                }
+            }
             
-            // Add timeout to upload request
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-            
-            const response = await fetch(`http://${targetIp}/edit`, {
-                method: 'POST',
-                body: formData,
-                signal: controller.signal
+            // Show final status
+            if (successCount > 0 && errorCount === 0) {
+                showStatus(`Text uploaded successfully to ${successCount} POI(s)!`, 'success');
+            } else if (successCount > 0 && errorCount > 0) {
+                showStatus(`Uploaded to ${successCount} POI(s), failed for ${errorCount} POI(s)`, 'warning');
+            } else {
+                throw new Error('Upload failed for all POIs');
+            }
             });
             
             clearTimeout(timeoutId);
@@ -357,37 +397,84 @@ const TextTab = (function() {
         const statusElement = document.getElementById('text-poi-status');
         if (!statusElement) return;
         
-        // Get IP for the selected POI
-        let targetIp;
-        if (poi === 'main') {
-            targetIp = window.state?.poiIPs?.mainIP;
-        } else if (poi === 'aux') {
-            targetIp = window.state?.poiIPs?.auxIP;
-        }
-        
-        if (!targetIp) {
-            statusElement.textContent = 'No IP configured';
-            statusElement.className = 'status-indicator offline';
-            return;
-        }
+        // Get IPs from global state
+        const mainIp = state?.poiIPs?.mainIP || '192.168.1.1';
+        const auxIp = state?.poiIPs?.auxIP || '192.168.1.78';
         
         // Show checking status
         statusElement.textContent = 'Checking...';
         statusElement.className = 'status-indicator';
         
         try {
-            // Simple connection check - try to fetch a small endpoint
+            if (poi === 'both') {
+                // Check both POIs
+                const [mainStatus, auxStatus] = await Promise.allSettled([
+                    checkPoiConnection(mainIp),
+                    checkPoiConnection(auxIp)
+                ]);
+                
+                const mainConnected = mainStatus.status === 'fulfilled' && mainStatus.value;
+                const auxConnected = auxStatus.status === 'fulfilled' && auxStatus.value;
+                
+                if (mainConnected && auxConnected) {
+                    statusElement.textContent = 'Both POIs Connected';
+                    statusElement.className = 'status-indicator online';
+                } else if (mainConnected || auxConnected) {
+                    statusElement.textContent = 'One POI Connected';
+                    statusElement.className = 'status-indicator warning';
+                } else {
+                    statusElement.textContent = 'Both POIs Offline';
+                    statusElement.className = 'status-indicator offline';
+                }
+            } else {
+                // Check single POI
+                let targetIp;
+                if (poi === 'main') {
+                    targetIp = mainIp;
+                } else if (poi === 'aux') {
+                    targetIp = auxIp;
+                }
+                
+                if (!targetIp) {
+                    statusElement.textContent = 'No IP configured';
+                    statusElement.className = 'status-indicator offline';
+                    return;
+                }
+                
+                const isConnected = await checkPoiConnection(targetIp);
+                
+                if (isConnected) {
+                    statusElement.textContent = 'Connected';
+                    statusElement.className = 'status-indicator online';
+                } else {
+                    statusElement.textContent = 'Offline';
+                    statusElement.className = 'status-indicator offline';
+                }
+            }
+        } catch (error) {
+            console.error(`Connection check failed for ${poi} POI(s):`, error);
+            statusElement.textContent = 'Check Failed';
+            statusElement.className = 'status-indicator offline';
+        }
+    }
+    
+    // Helper function to check POI connection
+    async function checkPoiConnection(ip) {
+        try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
             
-            const response = await fetch(`http://${targetIp}/get-pixels`, {
+            const response = await fetch(`http://${ip}/get-pixels`, {
                 signal: controller.signal,
                 method: 'GET'
             });
             
             clearTimeout(timeoutId);
-            
-            if (response.ok) {
+            return response.ok;
+        } catch (error) {
+            return false;
+        }
+    }
                 statusElement.textContent = 'Connected';
                 statusElement.className = 'status-indicator online';
             } else {
@@ -647,7 +734,8 @@ const TextTab = (function() {
         if (activeButton) {
             return activeButton.dataset.poi;
         }
-        return 'main';
+        // Default to 'both' since we want to upload to both POIs by default
+        return 'both';
     }
     
     // Public API
