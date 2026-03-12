@@ -462,9 +462,6 @@ const TextTab = (function() {
             return false;
         }
     }
-            }
-        }
-    }
     
     // Disable upload button
     function disableUploadButton() {
