@@ -462,11 +462,6 @@ const TextTab = (function() {
             return false;
         }
     }
-                statusElement.textContent = 'Connected';
-                statusElement.className = 'status-indicator online';
-            } else {
-                statusElement.textContent = 'Not responding';
-                statusElement.className = 'status-indicator offline';
             }
         }
     }
