@@ -302,9 +302,6 @@ const TextTab = (function() {
                 throw new Error('No POI IP addresses configured');
             }
             
-            if (!targetIp) {
-                throw new Error(`No IP address found for ${selectedPoi} POI`);
-            }
             
             // Upload to all target POIs
             let successCount = 0;
@@ -351,12 +348,6 @@ const TextTab = (function() {
             } else {
                 throw new Error('Upload failed for all POIs');
             }
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`Upload failed: ${response.statusText}`);
             }
             
             showStatus(`Text uploaded successfully to ${selectedPoi} POI!`, 'success');
@@ -481,17 +472,6 @@ const TextTab = (function() {
                 statusElement.textContent = 'Not responding';
                 statusElement.className = 'status-indicator offline';
             }
-        } catch (error) {
-            console.error(`Connection check failed for ${poi} POI:`, error);
-            statusElement.textContent = 'Offline';
-            statusElement.className = 'status-indicator offline';
-        }
-    }
-    
-    // Enable upload button
-    function enableUploadButton() {
-        if (elements.uploadBtn) {
-            elements.uploadBtn.disabled = false;
         }
     }
     
