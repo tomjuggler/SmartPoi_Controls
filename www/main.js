@@ -435,28 +435,15 @@ async function loadTextTabContent() {
     const textTab = document.getElementById('text');
     if (!textTab) return;
     
-    // Check if content is already loaded
-    if (textTab.children.length === 0) {
-        try {
-            // Load the text tab HTML content
-            const response = await fetch('text-tab.html');
-            if (!response.ok) throw new Error('Failed to load text tab content');
-            
-            const html = await response.text();
-            textTab.innerHTML = html;
-            
-            // Initialize the TextTab module
-            if (typeof TextTab !== 'undefined' && typeof TextTab.init === 'function') {
-                TextTab.init();
-            }
-        } catch (error) {
-            console.error('Error loading text tab:', error);
-            textTab.innerHTML = '<div class="error-message">Failed to load text tab content. Please refresh the page.</div>';
-        }
+    // Content is already inlined in index.html, just initialize TextTab module
+    if (typeof TextTab !== 'undefined' && typeof TextTab.init === 'function') {
+        TextTab.init();
     } else {
-        // Content already loaded, just ensure TextTab is initialized
-        if (typeof TextTab !== 'undefined' && typeof TextTab.init === 'function') {
-            TextTab.init();
+        console.warn('TextTab module not available');
+        // Show error message if TextTab is not available
+        const statusElement = document.getElementById('upload-status');
+        if (statusElement) {
+            statusElement.innerHTML = '<div class="error-message">Text tab functionality not available. Please refresh the page.</div>';
         }
     }
 }
