@@ -348,10 +348,6 @@ const TextTab = (function() {
             } else {
                 throw new Error('Upload failed for all POIs');
             }
-            }
-            
-            showStatus(`Text uploaded successfully to ${selectedPoi} POI!`, 'success');
-            
         } catch (error) {
             console.error('Upload failed:', error);
             showStatus(`Upload failed: ${error.message}`, 'error');
