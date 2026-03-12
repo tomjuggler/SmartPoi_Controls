@@ -462,12 +462,6 @@ const TextTab = (function() {
                     targetIp = auxIp;
                 }
                 
-    }
-    
-    // Simple delay function
-    function delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
                     statusElement.textContent = 'No IP configured';
                     statusElement.className = 'status-indicator offline';
                     return;
@@ -520,6 +514,11 @@ const TextTab = (function() {
         if (elements.uploadBtn) {
             elements.uploadBtn.disabled = false;
         }
+    }
+    
+    // Simple delay function
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
     
     // Show status message
