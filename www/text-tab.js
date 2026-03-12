@@ -302,7 +302,6 @@ const TextTab = (function() {
                 throw new Error('No POI IP addresses configured');
             }
             
-            
             // Upload to all target POIs
             let successCount = 0;
             let errorCount = 0;
@@ -311,27 +310,68 @@ const TextTab = (function() {
                 try {
                     showStatus(`Uploading to ${target.name}...`, 'info');
                     
-                    const formData = new FormData();
-                    formData.append('file', file, filename);
-                    
-                    // Add timeout to upload request
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-                    
-                    const response = await fetch(`http://${target.ip}/edit`, {
-                        method: 'POST',
-                        body: formData,
-                        signal: controller.signal
-                    });
-                    
-                    clearTimeout(timeoutId);
-                    
-                    if (!response.ok) {
-                        throw new Error(`Upload failed: ${response.statusText}`);
+                    // Store original pattern and turn off LEDs for upload
+                    let originalPattern;
+                    try {
+                        const response = await fetch(`http://${target.ip}/returnsettings`);
+                        if (response.ok) {
+                            const data = await response.text();
+                            const parts = data.split(',');
+                            originalPattern = parts[parts.length - 1].trim();
+                        } else {
+                            originalPattern = 1; // Default fallback
+                        }
+                        
+                        await fetch(`http://${target.ip}/pattern?patternChooserChange=7`);
+                        await delay(500); // Allow flash write cycle
+                    } catch (error) {
+                        console.error('Error preparing for upload:', error);
+                        showStatus(`Failed to initialize upload to ${target.name}`, 'error');
+                        errorCount++;
+                        continue;
                     }
                     
-                    successCount++;
-                    showStatus(`Uploaded to ${target.name} ✓`, 'success');
+                    try {
+                        // Process canvas image through the same pipeline as image uploads
+                        const binaryData = await processImageFile(file);
+                        
+                        const formData = new FormData();
+                        formData.append('file', new Blob([binaryData], {
+                            type: 'application/octet-stream'
+                        }), filename);
+                        
+                        // Add timeout to upload request
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                        
+                        const response = await fetch(`http://${target.ip}/edit`, {
+                            method: 'POST',
+                            body: formData,
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`Upload failed: ${response.statusText}`);
+                        }
+                        
+                        successCount++;
+                        showStatus(`Uploaded to ${target.name} ✓`, 'success');
+                        
+                    } catch (uploadError) {
+                        console.error(`Upload failed for ${target.name}:`, uploadError);
+                        errorCount++;
+                        showStatus(`Failed to upload to ${target.name}: ${uploadError.message}`, 'error');
+                    } finally {
+                        // Restore original pattern
+                        try {
+                            await fetch(`http://${target.ip}/pattern?patternChooserChange=${originalPattern || 1}`);
+                            await delay(500); // Allow flash write cycle
+                        } catch (restoreError) {
+                            console.error('Failed to restore pattern:', restoreError);
+                        }
+                    }
                     
                 } catch (error) {
                     console.error(`Upload failed for ${target.name}:`, error);
@@ -422,7 +462,12 @@ const TextTab = (function() {
                     targetIp = auxIp;
                 }
                 
-                if (!targetIp) {
+    }
+    
+    // Simple delay function
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
                     statusElement.textContent = 'No IP configured';
                     statusElement.className = 'status-indicator offline';
                     return;
