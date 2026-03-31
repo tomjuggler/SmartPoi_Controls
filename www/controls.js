@@ -1,4 +1,7 @@
 // Controls Tab Functions
+// Create namespace for controls functions (required by main.js wrappers)
+window.controls = window.controls || {};
+
 
 // Pattern Handling
 window.controlsSubmitPattern = async function(pattern) {
@@ -485,3 +488,17 @@ function toggleStripType() {
     updateStripTypeIndicator();
     createMessage(`Switched to ${state.stripType} mode`);
 }
+
+// Assign functions to window.controls namespace (required by main.js wrappers)
+window.controls.submitChannel = submitChannel;
+window.controls.submitRouterMode = submitRouterMode;
+window.controls.submitRouter = submitRouter;
+window.controls.submitPattern = window.submitPattern;
+window.controls.controlsSubmitPattern = window.controlsSubmitPattern;
+window.controls.initializePatternControls = initializePatternControls;
+window.controls.initializeSync = initializeSync;
+window.controls.initializeSliders = initializeSliders;
+window.controls.initializeEventListeners = initializeEventListeners;
+window.controls.initializeCustomCompressionModal = initializeCustomCompressionModal;
+window.controls.togglePasswordVisibility = togglePasswordVisibility;
+window.controls.toggleStripType = toggleStripType;
