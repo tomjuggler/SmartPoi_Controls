@@ -311,7 +311,7 @@ async function getFileListTwo() {
 
 
 // Tab swipe detection
-const TAB_ORDER = ['controls', 'images', 'upload', 'files', 'about', 'magic-bridge'];
+const TAB_ORDER = ['controls', 'images', 'upload', 'text', 'files', 'about', 'magic-bridge'];
 
 function switchToTab(tabName) {
     // Find button for this tab
@@ -430,6 +430,24 @@ function setupTabNavigation() {
     });
 }
 
+// Load text tab content
+async function loadTextTabContent() {
+    const textTab = document.getElementById('text');
+    if (!textTab) return;
+    
+    // Content is already inlined in index.html, just initialize TextTab module
+    if (typeof TextTab !== 'undefined' && typeof TextTab.init === 'function') {
+        TextTab.init();
+    } else {
+        console.warn('TextTab module not available');
+        // Show error message if TextTab is not available
+        const statusElement = document.getElementById('upload-status');
+        if (statusElement) {
+            statusElement.innerHTML = '<div class="error-message">Text tab functionality not available. Please refresh the page.</div>';
+        }
+    }
+}
+
 // Load tab-specific content
 function loadTabContent(tabName) {
     if (tabName === 'controls') {
@@ -438,6 +456,9 @@ function loadTabContent(tabName) {
     } else if (tabName === 'images') {
         setupImageHandlers();
         refreshAllImages();
+    } else if (tabName === 'text') {
+        // Load and initialize text tab
+        loadTextTabContent();
     } else if (tabName === 'files') {
         // Initialize any list-specific functionality
     }

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartPoi Controls</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="text-tab.css">
     <link rel="icon" type="image/png" href="ic_launcher-web.png">
     <script src="jimp.min.js"></script>
 </head>
@@ -18,6 +19,7 @@
                 <button class="tab-button active" data-tab="controls">Controls</button>
                 <button class="tab-button" data-tab="images">Image Management</button>
                 <button class="tab-button" data-tab="upload">Upload Bin</button>
+                <button class="tab-button" data-tab="text">Text to POI</button>
                 <button class="tab-button" data-tab="files">File Lists</button>
                 <button class="tab-button" data-tab="about">About Us</button>
                 <button class="tab-button" data-tab="magic-bridge">Smart Magic Bridge</button>
@@ -256,6 +258,117 @@
             </div>
           </div>
         </div>
+        
+        <!-- Text to POI Tab -->
+        <div id="text" class="tab-content">
+            <!-- Text Tab Content -->
+            <div class="text-tab-container">
+                <h1 class="text-tab-title">✨ Text to POI</h1>
+                
+                <div class="text-controls-grid">
+                    <!-- Text Input Section -->
+                    <div class="control-section">
+                        <h3 class="section-title">Text Input</h3>
+                        <input type="text" id="text-input" class="text-input" placeholder="Enter your text here">
+                        <div class="dimension-control">
+                            <label for="height-input">Canvas Height (36-256px)</label>
+                            <input type="number" id="height-input" class="dimension-input" min="36" max="256" value="120">
+                        </div>
+                        
+                        <div class="aspect-ratio-control">
+                            <span class="control-label">Aspect Ratio:</span>
+                            <div class="ratio-buttons">
+                                <button class="ratio-btn" data-ratio="1">1:1</button>
+                                <button class="ratio-btn active" data-ratio="1.5">3:2</button>
+                                <button class="ratio-btn" data-ratio="2">2:1</button>
+                                <button class="ratio-btn" data-ratio="2.5">5:2</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Color Selection Section -->
+                    <div class="control-section">
+                        <h3 class="section-title">Text Color</h3>
+                        <input type="color" id="color-picker" class="color-picker" value="#ff0000">
+                        
+                        <div class="color-palette">
+                            <div class="color-swatch active" data-color="#ff0000" style="background: #ff0000"></div>
+                            <div class="color-swatch" data-color="#00ff00" style="background: #00ff00"></div>
+                            <div class="color-swatch" data-color="#0000ff" style="background: #0000ff"></div>
+                            <div class="color-swatch" data-color="#ffff00" style="background: #ffff00"></div>
+                            <div class="color-swatch" data-color="#ff00ff" style="background: #ff00ff"></div>
+                            <div class="color-swatch" data-color="#00ffff" style="background: #00ffff"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Preview Canvas -->
+                <div class="canvas-container">
+                    <h3 class="section-title">Preview</h3>
+                    <canvas id="textCanvas" class="text-canvas" width="180" height="120"></canvas>
+                    <div class="canvas-info">
+                        <span id="canvas-dimensions">180×120 pixels</span>
+                        <span id="font-status">Font: Loading...</span>
+                    </div>
+                </div>
+                
+                <!-- Upload Controls -->
+                <div class="upload-controls">
+                    <h3 class="section-title">Upload to POI</h3>
+                    
+                    <div class="upload-section">
+                        <div class="poi-selection">
+                            <label class="control-label">Target POI:</label>
+                            <div class="poi-buttons">
+                                <button class="poi-btn active" data-poi="both">Both POIs</button>
+                                <button class="poi-btn" data-poi="main">Main POI</button>
+                                <button class="poi-btn" data-poi="aux">Aux POI</button>
+                            </div>
+                            <div class="connection-status">
+                                <span class="status-indicator online" id="text-poi-status">Connected</span>
+                            </div>
+                        </div>
+                        
+                        <div class="filename-selection">
+                            <label class="control-label" for="filename-input">Filename:</label>
+                            <div class="filename-input-group">
+                                <input type="text" id="filename-input" class="filename-input" value="a.bin" placeholder="a.bin">
+                                <div class="filename-suggestions">
+                                    <span class="filename-suggestion" data-filename="a.bin">a.bin</span>
+                                    <span class="filename-suggestion" data-filename="b.bin">b.bin</span>
+                                    <span class="filename-suggestion" data-filename="c.bin">c.bin</span>
+                                    <span class="filename-suggestion" data-filename="d.bin">d.bin</span>
+                                </div>
+                            </div>
+                            <div class="filename-validation" id="filename-validation"></div>
+                        </div>
+                        
+                        <div class="upload-actions">
+                            <button id="generate-btn" class="action-btn generate-btn">Generate Image</button>
+                            <button id="upload-btn" class="action-btn upload-btn" disabled>Upload to POI</button>
+                        </div>
+                        
+                        <div class="upload-status" id="upload-status">
+                            <!-- Status messages will appear here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Instructions -->
+                <div class="instructions">
+                    <h3 class="section-title">How to Use</h3>
+                    <ol class="instructions-list">
+                        <li>Enter text in the input field above</li>
+                        <li>Adjust height and aspect ratio as needed</li>
+                        <li>Select text color from palette or custom picker</li>
+                        <li>Click "Generate Image" to preview</li>
+                        <li>Select target POI and filename</li>
+                        <li>Click "Upload to POI" to send to device</li>
+                    </ol>
+                    <p class="note"><strong>Note:</strong> The custom font will load automatically. If font loading fails, system font will be used.</p>
+                </div>
+            </div>
+        </div>
 
         <!-- File Lists Tab -->
         <div id="files" class="tab-content">
@@ -356,6 +469,7 @@
     <script src="image-processing.js"></script>
     <script src="images.js"></script>
     <script src="upload.js"></script>
+    <script src="text-tab.js"></script>
     <script src="magic-bridge.js"></script>
     <script src="main.js"></script>
     <div class="message-modal" id="messageModal"></div>
