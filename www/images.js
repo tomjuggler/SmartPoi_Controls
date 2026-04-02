@@ -516,12 +516,6 @@ function handleImageDrop(event, ip) {
     }
 }
 
-function handleDragOver(event) {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-}
-
-
 // Image handling core functions
 async function updatePixelsOnBoth() {
   const pixels = document.getElementById('pixelInput').value;
