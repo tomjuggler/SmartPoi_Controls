@@ -117,6 +117,38 @@
     opacity: 0.5;
 }
 
+/* Drag-and-Drop Visual Feedback Styles */
+.image-wrapper.drag-over {
+    border: 2px solid #2c7a47;
+    background-color: rgba(44, 122, 71, 0.1);
+    box-shadow: 0 0 10px rgba(44, 122, 71, 0.5);
+    transition: all 0.2s ease;
+}
+
+.image-wrapper.drag-valid {
+    border: 2px solid #2c7a47;
+    background-color: rgba(44, 122, 71, 0.15);
+}
+
+.image-wrapper.drag-invalid {
+    border: 2px solid #dc3545;
+    background-color: rgba(220, 53, 69, 0.15);
+}
+
+/* Visual feedback for file being dragged */
+.dragging-file {
+    opacity: 0.7;
+    transform: scale(0.95);
+}
+
+/* Drop zone highlight when dragging over container */
+.image-grid-container.drag-over-container {
+    background-color: rgba(44, 122, 71, 0.05);
+    border: 2px dashed #2c7a47;
+    border-radius: 8px;
+}
+}
+
 .bin-filename {
     position: absolute;
     bottom: 2px;

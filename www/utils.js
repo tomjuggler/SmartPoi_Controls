@@ -7,6 +7,27 @@ let retryCount = 0;
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+// Device Detection Utility
+function isDesktopDevice() {
+    // Check if device has touch capability (mobile/tablet)
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    // Check screen width (desktop typically > 768px)
+    const isWideScreen = window.innerWidth > 768;
+    
+    // Optional: Check user agent for additional hints
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobileUserAgent = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+    
+    // Desktop detection logic:
+    // - Consider it desktop if screen is wide AND either:
+    //   a) No touch capability, OR
+    //   b) Has touch but user agent doesn't indicate mobile device
+    return isWideScreen && (!hasTouch || (hasTouch && !isMobileUserAgent));
+}
+
+// Make function available globally
+window.isDesktopDevice = isDesktopDevice;
 
 function createMessage(message, type = 'info') {
     const modal = document.getElementById('messageModal');

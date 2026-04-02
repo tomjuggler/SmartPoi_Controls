@@ -31,6 +31,183 @@ async function sendPatternToBothPOIs(pattern) {
 let longPressTimer = null;
 let longPressTarget = null;
 
+// File Validation Constants
+const MAX_FILE_SIZE_MB = 10; // Maximum file size in MB
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024; // Convert to bytes
+
+// Supported image file types
+const SUPPORTED_IMAGE_TYPES = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif',
+    'image/bmp',
+    'image/webp'
+];
+
+// File validation function
+function validateDroppedFile(file) {
+    // Check file type
+    const isValidType = SUPPORTED_IMAGE_TYPES.includes(file.type.toLowerCase()) || 
+                       /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(file.name);
+    
+    if (!isValidType) {
+        return {
+            valid: false,
+            error: `Invalid file type: "${file.name}". Please drop image files only (JPEG, PNG, GIF, BMP, WebP).`
+        };
+    }
+    
+    // Check file size
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        return {
+            valid: false,
+            error: `File too large: "${file.name}" is ${fileSizeMB} MB. Maximum size is ${MAX_FILE_SIZE_MB} MB.`
+        };
+    }
+    
+    // Check for empty files
+    if (file.size === 0) {
+        return {
+            valid: false,
+            error: `Empty file: "${file.name}" has no content.`
+        };
+    }
+    
+    // All checks passed
+    return {
+        valid: true,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+    };
+}
+
+// Drag-and-Drop Visual Feedback Helper Functions
+function handleDragEnter(event) {
+    event.preventDefault();
+    const wrapper = event.target.closest('.image-wrapper');
+    if (wrapper) {
+        wrapper.classList.add('drag-over');
+        
+        // Determine if this is a valid drop target
+        const targetFileName = wrapper.dataset.fileName;
+        const isValidTarget = targetFileName && /^[a-zA-Z0-9-_.]{1,50}\.bin$/i.test(targetFileName);
+        
+        if (isValidTarget) {
+            wrapper.classList.add('drag-valid');
+            wrapper.classList.remove('drag-invalid');
+        } else {
+            wrapper.classList.add('drag-invalid');
+            wrapper.classList.remove('drag-valid');
+        }
+    }
+}
+
+function handleDragLeave(event) {
+    event.preventDefault();
+    const wrapper = event.target.closest('.image-wrapper');
+    if (wrapper) {
+        wrapper.classList.remove('drag-over', 'drag-valid', 'drag-invalid');
+    }
+}
+
+function handleTileDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    
+    // Update visual feedback
+    const wrapper = event.target.closest('.image-wrapper');
+    if (wrapper && !wrapper.classList.contains('drag-over')) {
+        wrapper.classList.add('drag-over');
+    }
+}
+
+// Enhanced handleImageDrop function with validation
+function handleEnhancedImageDrop(event, ip) {
+    event.preventDefault();
+    
+    const files = event.dataTransfer.files;
+    if (files.length === 0) {
+        createMessage('No files were dropped', 'warning');
+        return;
+    }
+
+    // Get the closest image-wrapper ancestor of the drop target
+    const dropTarget = event.target.closest('.image-wrapper');
+    
+    // Validate drop target
+    if (!dropTarget) {
+        createMessage('Please drop files onto an image tile', 'error');
+        return;
+    }
+
+    const targetFileName = dropTarget.dataset.fileName;
+    
+    // Validate target filename exists and matches expected format
+    if (!targetFileName || !/^[a-zA-Z0-9-_.]{1,50}\.bin$/i.test(targetFileName)) {
+        createMessage('Invalid drop target - not a valid image tile', 'error');
+        return;
+    }
+
+    // Process each dropped file with validation
+    const validFiles = [];
+    const invalidFiles = [];
+    
+    Array.from(files).forEach(file => {
+        const validation = validateDroppedFile(file);
+        
+        if (validation.valid) {
+            validFiles.push({
+                file: file,
+                validation: validation
+            });
+        } else {
+            invalidFiles.push({
+                file: file,
+                error: validation.error
+            });
+        }
+    });
+
+    // Show warnings for invalid files
+    invalidFiles.forEach(invalid => {
+        createMessage(invalid.error, 'warning');
+    });
+
+    if (validFiles.length === 0) {
+        createMessage('No valid image files to upload', 'warning');
+        return;
+    }
+
+    // Process each valid file
+    validFiles.forEach((fileData, index) => {
+        // For multiple files, we need to handle them differently
+        // For now, we'll process them sequentially with a small delay
+        setTimeout(() => {
+            // Check if handleImageUpload function is available
+            if (typeof window.handleImageUpload === 'function') {
+                window.handleImageUpload(fileData.file, ip, targetFileName);
+            } else {
+                // Fallback: try to find the function in image-processing.js
+                if (typeof handleImageUpload === 'function') {
+                    handleImageUpload(fileData.file, ip, targetFileName);
+                } else {
+                    console.error('handleImageUpload function not available');
+                    createMessage('Upload functionality not available', 'error');
+                }
+            }
+        }, index * 100); // Small delay between files to avoid overwhelming the POI
+    });
+
+    // Show success message
+    if (validFiles.length === 1) {
+        createMessage(`Uploading ${validFiles[0].file.name} to ${targetFileName}...`, 'info');
+    } else {
+        createMessage(`Uploading ${validFiles.length} files to ${targetFileName}...`, 'info');
+    }
+}
 function handleTouchStart(e) {
     const wrapper = e.target.closest('.image-wrapper');
     if (!wrapper) return;
@@ -269,6 +446,20 @@ function createBlackImages(containerId, ip) {
         wrapper.addEventListener('mousemove', handleTouchMove);
         wrapper.addEventListener('mouseup', handleTouchEnd);
         wrapper.addEventListener('mouseleave', handleTouchEnd);
+        // Conditionally add drag-and-drop handlers for desktop devices
+        if (typeof window.isDesktopDevice === 'function' && window.isDesktopDevice()) {
+            // Drag event handlers for visual feedback
+            wrapper.addEventListener('dragenter', handleDragEnter);
+            wrapper.addEventListener('dragover', handleTileDragOver);
+            wrapper.addEventListener('dragleave', handleDragLeave);
+            wrapper.addEventListener('drop', function(e) {
+                e.preventDefault();
+                // Remove all drag feedback classes
+                this.classList.remove('drag-over', 'drag-valid', 'drag-invalid');
+                // Call the enhanced handleImageDrop function
+                handleEnhancedImageDrop(e, ip);
+            });
+        }
 
         // Click handler for preview and pattern activation
         wrapper.addEventListener('click', function() {
