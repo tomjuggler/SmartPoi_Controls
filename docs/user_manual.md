@@ -46,7 +46,7 @@ Choose from nine preset patterns to display on your POIs:
 3. **IMG 6-10** - Images 6 through 10
 4. **IMG 10-20** - Images 10 through 20
 5. **IMG 1-52** - All images (1-52)
-6. **On/Off Switch** - Toggle pattern
+6. **On/Off Switch** - Toggle patterns 1-5 every time poi starts
 7. **LEDs OFF** - Turn off all LEDs
 8. **UDP Mode** - Enable UDP control protocol
 
@@ -58,22 +58,25 @@ Choose from nine preset patterns to display on your POIs:
 ### Adjustments
 Use sliders to fine-tune POI behavior:
 - **Speed Control**: Adjust display speed from 0.5 to 1800 seconds
+(time between image changes)
 - **Brightness Control**: Adjust LED brightness from 20 to 255
 
 **How to use**: Drag the sliders left or right. The tooltip shows the current value.
 
 ### Network Discovery
 Automatically discover POIs on your network using Fast Discovery:
-1. Enter your router's IP address (typically 192.168.1.1)
+1. Enter your router's IP address (for AP mode choose 192.168.1.1)
 2. Click **Discover POI**
 3. The system will scan for connected POIs
 
-**Note**: POIs must show a GREEN indicator light to be discovered.
+**Note**: POIs show a GREEN indicator light in Router Mode, Blue/Red for default Access Point mode
 **Tip**: Fast Discovery may need to be attempted a few times to work successfully.
 ### Manual IP Configuration
 If automatic discovery fails, manually set IP addresses:
 - **Main POI IP**: Enter IP address and click **Set Main**
+AP Mode Default: 192.168.1.1
 - **Aux POI IP**: Enter IP address and click **Set Aux**
+AP Mode Default: 192.168.1.78
 
 ### POI Status Display
 View current settings for each POI:
@@ -90,10 +93,11 @@ View current settings for each POI:
 1. **Update Router Name and Password**:
    - Enter new router SSID and password
    - Click **Submit** to update POI WiFi credentials
-
+   
 2. **Router Mode Toggle**:
    - Check/uncheck the box to enable/disable router mode
    - Click **Submit** to apply
+   - Note: Poi will now alternate between Router/AP mode on reboot
 
 3. **Update WiFi Channel**:
    - Enter channel number (1-13)
@@ -109,35 +113,34 @@ View current settings for each POI:
 - **Fetch Aux Poi Images**: Retrieves images only from the Aux POI
 
 ### Image Interaction
-- **View Enlarged**: Click any image to open it in a modal view
+- **View Enlarged**: Click any image to open it (and display on poi)
 - **Long Press/Right-click**: Opens context menu with options:
-  - Upload to other POI
+  - Upload an image to POI
   - Delete image
-  - Adjust brightness
-
+- **Desktop Browser Drag/Drop**: drag images from file browser onto image placeholder to upload to POI
 ### Pixel Control
-- View current pixel count for each POI
-- Update pixel count if needed (advanced users)
+- View current pixel count for each POI (should be fetched from poi automatically)
 
 ### LED Strip Type
 Toggle between APA102, WS2812, or CUSTOM LED strip types.
 
-**Note**: Custom strip type opens a compression settings dialog (20-80%) for specialized LED setups.
+**Note**: Custom strip type opens a compression settings dialog (20-80%) for specialized LED setups. Try 40% for WS2812 longer strips
+- compresses horizontally to fit slow refresh rate strips
+- default 50% for WS2812, 0% for APA102
 ### Delete All Images
 **Warning**: This action is permanent!
 - Click the red **! DELETE ALL IMAGES ON BOTH POIs !** button
-- Confirm understanding that all images will be permanently removed
 
 ---
 
 ## Upload Bin Tab
 
 ### File Selection
-1. Click to select image files (multiple selection supported)
+1. Click "Browse" to select image files (multiple selection supported)
 2. Selected files appear in a draggable list
 
 ### File Reordering
-- Drag and drop files in the list to change upload order
+- Drag files up/down in the list to change upload order
 - Files are uploaded in the order shown
 
 ### LED Configuration
@@ -149,7 +152,7 @@ Toggle between APA102, WS2812, or CUSTOM LED strip types.
 1. Select files
 2. Reorder if desired
 3. Click **Upload and convert**
-4. Files are converted and uploaded to selected POI(s)
+4. Files are converted and uploaded to POI
 
 ---
 
@@ -157,7 +160,7 @@ Toggle between APA102, WS2812, or CUSTOM LED strip types.
 
 ### Text Creation
 1. **Enter Text**: Type your message in the text input field
-2. **Adjust Height**: Set canvas height (36-256 pixels)
+2. **Adjust Height**: Set canvas height (choose your actual POI size)
 3. **Select Aspect Ratio**: Choose from 1:1, 3:2, 2:1, or 5:2
 4. **Choose Color**:
    - Use color picker for custom colors
@@ -177,6 +180,9 @@ Toggle between APA102, WS2812, or CUSTOM LED strip types.
 1. Click **Generate Image** to create preview
 2. Verify text appearance
 3. Click **Upload to POI** to send to selected device(s)
+
+### NOTE:
+- Text to POI works in AP Mode only!
 
 ---
 
@@ -203,14 +209,16 @@ Learn about the collaboration between:
 
 ### Contact Information
 - DevSoft website: https://devsoft.co.za
-- Hoop Roots Instagram: https://www.instagram.com/hoop_roots_lovers/
+- Hoop Roots website: https://hoop-roots.com/
 
 ---
 
 ## Smart Magic Bridge Tab
 
 ### Direct ZIP Upload
-Upload ZIP files directly to POIs without individual file processing:
+- ZIP files, create in https://magicpoi.com (patreon subscribers only)
+- sign up at https://patreon.com/c/CircusScientist
+- Upload ZIP files directly to POIs without the need for individual file processing:
 1. Click to select a ZIP file
 2. File contents are listed for verification
 3. Click **Upload to POI**
