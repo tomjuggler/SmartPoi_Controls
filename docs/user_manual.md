@@ -38,6 +38,10 @@ The application is organized into seven tabs at the top of the screen:
 ---
 
 ## Controls Tab
+::: {style="display: flex;"}
+![Controls1](1.png){width=45%}
+![Controls2](2.png){width=45%}
+:::
 
 ### Pattern Selection
 Choose from nine preset patterns to display on your POIs:
@@ -80,7 +84,7 @@ AP Mode Default: 192.168.1.78
 
 ### POI Status Display
 View current settings for each POI:
-- Router name and password (click 👁 to show/hide password)
+- Router name and password (show/hide password option)
 - WiFi channel (1-13)
 - Active pattern
 - Number of pixels detected
@@ -106,7 +110,10 @@ View current settings for each POI:
 ---
 
 ## Image Management Tab
-
+::: {style="display: flex;"}
+![Images1](3.png){width=45%}
+![Images2](4.png){width=45%}
+:::
 ### Fetching Images
 - **Fetch and Display All Images**: Retrieves images from both POIs and displays them in grids
 - **Fetch Main Poi Images**: Retrieves images only from the Main POI
@@ -134,7 +141,10 @@ Toggle between APA102, WS2812, or CUSTOM LED strip types.
 ---
 
 ## Upload Bin Tab
-
+::: {style="display: flex;"}
+![Upload1](5.png){width=45%}
+![Upload2](6.png){width=45%}
+:::
 ### File Selection
 1. Click "Browse" to select image files (multiple selection supported)
 2. Selected files appear in a draggable list
@@ -157,6 +167,10 @@ Toggle between APA102, WS2812, or CUSTOM LED strip types.
 ---
 
 ## Text to POI Tab
+::: {style="display: flex;"}
+![Text1](7.png){width=45%}
+![Text2](8.png){width=45%}
+:::
 
 ### Text Creation
 1. **Enter Text**: Type your message in the text input field
@@ -187,6 +201,7 @@ Toggle between APA102, WS2812, or CUSTOM LED strip types.
 ---
 
 ## File Lists Tab
+![Files1](9.png)
 
 ### Viewing Files
 - **Get Main POI Files**: Display all files stored on Main POI
@@ -201,6 +216,7 @@ File lists show:
 ---
 
 ## About Us Tab
+![About1](10.png)
 
 ### Partnership Information
 Learn about the collaboration between:
@@ -208,16 +224,17 @@ Learn about the collaboration between:
 - **Hoop Roots** (Performance equipment): Hardware design and manufacturing
 
 ### Contact Information
-- DevSoft website: https://devsoft.co.za
-- Hoop Roots website: https://hoop-roots.com/
+- DevSoft website: [devsoft.co.za](https://devsoft.co.za)
+- Hoop Roots website: [hoop-roots.com](https://hoop-roots.com)
 
 ---
 
 ## Smart Magic Bridge Tab
+![Magic1](11.png)
 
 ### Direct ZIP Upload
-- ZIP files, create in https://magicpoi.com (patreon subscribers only)
-- sign up at https://patreon.com/c/CircusScientist
+- ZIP files, create in [magicpoi.com](https://magicpoi.com) (patreon subscribers only)
+- **[Sign up to Patreon here](https://patreon.com/c/CircusScientist)**
 - Upload ZIP files directly to POIs without the need for individual file processing:
 1. Click to select a ZIP file
 2. File contents are listed for verification
@@ -229,18 +246,30 @@ Learn about the collaboration between:
 
 ---
 
+## Upgrading POI firmware (ESP32 version only)
+**[Subscribe to Patreon](https://patreon.com/c/CircusScientist)** to receive the latest firmware updates 
+- connect to poi 
+- open web browser
+- visit [http://192.168.1.78/update](http://192.168.1.78/update) (Auxillary) and
+- [http://192.168.1.1/update](http://192.168.1.1/update) (Main) 
+- update Auxillary, then Main (choose correct downloaded .bin file)
+- usually filesystem does not need upgrading (check release notes)
+- ***Router mode: use actual poi IP***
+- ***Make sure to not upload Auxillary Firmware to Main Poi by mistake!!***
+
+---
+
 ## Tips and Best Practices
 
 ### General
 - Keep POIs and control device on the same Wi-Fi network
-- Use the **Fetch Settings** button regularly to verify connection
-- Start with lower brightness settings and increase as needed
+- Use the **Fetch Settings** button to verify connection
+- Start with lower brightness settings and increase as needed (SmartPoi always start up with Brightness 20 to save battery)
 
 ### Image Management
-- Use descriptive filenames for easier management
 - Regularly back up important images
-- Test new patterns/images on one POI before deploying to both
-
+- 1000's of poi images available from [magicpoi.com](https://magicpoi.com)
+([Patreon subscription](https://patreon.com/c/CircusScientist) required)
 ### Text Creation
 - Shorter text works better with limited pixel displays
 - Use high-contrast colors for better visibility
@@ -253,29 +282,7 @@ Learn about the collaboration between:
 
 ---
 
-## Screenshot Placeholders
 
-*Screenshots will be added in a future update to illustrate each section.*
 
-### Controls Tab Screenshot
-[SCREENSHOT: Controls tab showing pattern buttons, sliders, and network settings]
-
-### Image Management Tab Screenshot
-[SCREENSHOT: Image grids showing thumbnails with context menu]
-
-### Upload Bin Tab Screenshot
-[SCREENSHOT: File selection and draggable list interface]
-
-### Text to POI Tab Screenshot
-[SCREENSHOT: Text input, color selection, and preview canvas]
-
-### File Lists Tab Screenshot
-[SCREENSHOT: File list display for both POIs]
-
-### Smart Magic Bridge Screenshot
-[SCREENSHOT: ZIP upload interface]
-
----
-
-*Last updated: [Date]*
-*SmartPoi Controls Version: [Version]*
+*Last updated: [9 April 2026]*
+*SmartPoi Controls Version: [1.0.4]*
