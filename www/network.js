@@ -59,6 +59,8 @@ async function fastScanNetwork(subnet) {
         return {
             mainIP: foundDevices[0] || state.poiIPs.mainIP,
             auxIP: foundDevices[1] || state.poiIPs.auxIP,
+            poiThreeIP: foundDevices[2] || "0.0.0.0",
+            poiFourIP: foundDevices[3] || "0.0.0.0",
             foundDevices
         };
     } finally {
@@ -83,16 +85,20 @@ function initializeNetworkDiscovery() {
         showLoadingState(true);
         
         try {
-            const { mainIP, auxIP, foundDevices } = await fastScanNetwork(subnet);
+            const { mainIP, auxIP, poiThreeIP, poiFourIP, foundDevices } = await fastScanNetwork(subnet);
             
             if (foundDevices.length === 0) {
                 // No devices found: reset to defaults
                 state.poiIPs.mainIP = "192.168.1.1";
                 state.poiIPs.auxIP = "192.168.1.78";
+                state.poiIPs.poiThreeIP = "0.0.0.0";
+                state.poiIPs.poiFourIP = "0.0.0.0";
             } else {
                 // Use the IPs from the scan
                 state.poiIPs.mainIP = mainIP;
                 state.poiIPs.auxIP = auxIP;
+                state.poiIPs.poiThreeIP = poiThreeIP;
+                state.poiIPs.poiFourIP = poiFourIP;
             }
             
             state.poiIPs.routerMode = true;
@@ -102,6 +108,8 @@ function initializeNetworkDiscovery() {
             // Update UI inputs
             document.getElementById('manualMainIp').value = state.poiIPs.mainIP;
             document.getElementById('manualAuxIp').value = state.poiIPs.auxIP;
+            document.getElementById('manualPoiThreeIp').value = state.poiIPs.poiThreeIP;
+            document.getElementById('manualPoiFourIp').value = state.poiIPs.poiFourIP;
         
             if (foundDevices.length > 0) {
                 createMessage(`Discovered ${foundDevices.length} POI(s): ${foundDevices.join(', ')}`);
