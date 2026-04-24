@@ -107,6 +107,14 @@ function updateNetworkModeDisplay() {
     // Update placeholders to current values
     document.getElementById('manualMainIp').placeholder = state.poiIPs.mainIP;
     document.getElementById('manualAuxIp').placeholder = state.poiIPs.auxIP;
+    document.getElementById('manualPoiThreeIp').placeholder = state.poiIPs.poiThreeIP;
+    document.getElementById('manualPoiFourIp').placeholder = state.poiIPs.poiFourIP;
+    
+    // Show/hide router-only elements based on mode
+    const routerOnlyElements = document.querySelectorAll('.router-only');
+    routerOnlyElements.forEach(el => {
+        el.style.display = state.poiIPs.routerMode ? '' : 'none';
+    });
 }
 
 function updateStripTypeIndicator() {
