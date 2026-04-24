@@ -161,16 +161,24 @@ function updateAllPixelDisplays(pixelCount) {
 }
 
 function updatePixelDisplayForPoi(poiType, pixelCount) {
-    // Update display for specific POI (main or aux)
+    // Update display for specific POI (main, aux, three, or four)
+    const displayCount = (pixelCount === null || pixelCount === undefined || pixelCount === '?') ? '?' : pixelCount;
+    
     if (poiType === 'main') {
         state.settings.pixels = pixelCount;
         updateAllPixelDisplays(pixelCount);
     } else if (poiType === 'aux') {
-        // Handle unavailable pixel count for aux POI
-        const displayCount = (pixelCount === null || pixelCount === undefined || pixelCount === '?') ? '?' : pixelCount;
         state.settings.pixelsTwo = pixelCount;
-        const pixelsTwoEl = document.getElementById('pixelsTwo');
-        if (pixelsTwoEl) pixelsTwoEl.textContent = displayCount;
+        const el = document.getElementById('pixelsTwo');
+        if (el) el.textContent = displayCount;
+    } else if (poiType === 'three') {
+        state.settings.pixelsThree = pixelCount;
+        const el = document.getElementById('pixelsThree');
+        if (el) el.textContent = displayCount;
+    } else if (poiType === 'four') {
+        state.settings.pixelsFour = pixelCount;
+        const el = document.getElementById('pixelsFour');
+        if (el) el.textContent = displayCount;
     }
 }
 
