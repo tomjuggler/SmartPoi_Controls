@@ -14,6 +14,18 @@ function setAuxIp() {
     }
 }
 
+function setPoiThreeIp() {
+    if (typeof window.networkSetPoiThreeIp === 'function') {
+        window.networkSetPoiThreeIp();
+    }
+}
+
+function setPoiFourIp() {
+    if (typeof window.networkSetPoiFourIp === 'function') {
+        window.networkSetPoiFourIp();
+    }
+}
+
 
 function submitRouterMode() {
     if (typeof window.controls && typeof window.controls.submitRouterMode === 'function') {

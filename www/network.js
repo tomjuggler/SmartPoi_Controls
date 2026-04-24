@@ -230,3 +230,35 @@ window.networkSetAuxIp = function() {
         showError('auxIpError', 'Invalid IP format');
     }
 }
+
+window.networkSetPoiThreeIp = function() {
+    if (!state.poiIPs.routerMode) {
+        createMessage('Enable Router Mode first!', 'warning');
+        return;
+    }
+    const ip = document.getElementById('manualPoiThreeIp').value;
+    if (validateIP(ip)) {
+        state.poiIPs.poiThreeIP = ip;
+        saveState();
+        createMessage(`POI 3 IP set to ${ip}`);
+        updateStatusIndicators();
+    } else {
+        showError('poiThreeIpError', 'Invalid IP format');
+    }
+};
+
+window.networkSetPoiFourIp = function() {
+    if (!state.poiIPs.routerMode) {
+        createMessage('Enable Router Mode first!', 'warning');
+        return;
+    }
+    const ip = document.getElementById('manualPoiFourIp').value;
+    if (validateIP(ip)) {
+        state.poiIPs.poiFourIP = ip;
+        saveState();
+        createMessage(`POI 4 IP set to ${ip}`);
+        updateStatusIndicators();
+    } else {
+        showError('poiFourIpError', 'Invalid IP format');
+    }
+};
