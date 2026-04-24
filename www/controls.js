@@ -155,10 +155,19 @@ function initializeFetchButton() {
 
             createMessage('Fetching settings...', 'info');
         
-            const [mainData, auxData] = await Promise.all([
+            const fetchPromises = [
                 fetchSettings(state.poiIPs.mainIP),
                 fetchSettings(state.poiIPs.auxIP)
-            ]);
+            ];
+            const fetchPoiThree = state.poiIPs.routerMode && state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0';
+            const fetchPoiFour = state.poiIPs.routerMode && state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0';
+            if (fetchPoiThree) fetchPromises.push(fetchSettings(state.poiIPs.poiThreeIP));
+            if (fetchPoiFour) fetchPromises.push(fetchSettings(state.poiIPs.poiFourIP));
+            const results = await Promise.all(fetchPromises);
+            const mainData = results[0];
+            const auxData = results[1];
+            const poiThreeData = results[2] || null;
+            const poiFourData = results[3] || null;
 
             // Update Main POI Display
             document.getElementById('router').textContent = mainData.router;
@@ -177,6 +186,32 @@ function initializeFetchButton() {
             document.getElementById('channelTwo').textContent = auxData.channel;
             document.getElementById('patternTwo').textContent = auxData.pattern;
             updatePixelDisplayForPoi('aux', auxData.pixels);
+
+            // Update POI 3 Display
+            if (poiThreeData) {
+                document.getElementById('routerThree').textContent = poiThreeData.router;
+                const passwordThree = document.getElementById('passwordThree');
+                if (passwordThree) {
+                    passwordThree.textContent = '******';
+                    passwordThree.dataset.actualPassword = poiThreeData.password;
+                }
+                document.getElementById('channelThree').textContent = poiThreeData.channel;
+                document.getElementById('patternThree').textContent = poiThreeData.pattern;
+                updatePixelDisplayForPoi('three', poiThreeData.pixels);
+            }
+
+            // Update POI 4 Display
+            if (poiFourData) {
+                document.getElementById('routerFour').textContent = poiFourData.router;
+                const passwordFour = document.getElementById('passwordFour');
+                if (passwordFour) {
+                    passwordFour.textContent = '******';
+                    passwordFour.dataset.actualPassword = poiFourData.password;
+                }
+                document.getElementById('channelFour').textContent = poiFourData.channel;
+                document.getElementById('patternFour').textContent = poiFourData.pattern;
+                updatePixelDisplayForPoi('four', poiFourData.pixels);
+            }
 
             // Restore inputs if they were cleared
             document.getElementById('routerInput').value = currentRouter || mainData.router;
@@ -221,6 +256,34 @@ function initializeFetchButton() {
                 document.getElementById('patternTwo').textContent = state.settings.patternTwo;
                 updatePixelDisplayForPoi('aux', state.settings.pixelsTwo || '?');
             }
+
+            // Update POI 3 State
+            if (poiThreeData) {
+                state.settings.routerThree = poiThreeData.router;
+                state.settings.passwordThree = poiThreeData.password;
+                state.settings.channelThree = poiThreeData.channel;
+                state.settings.patternThree = poiThreeData.pattern;
+                state.settings.pixelsThree = await fetchNumberOfPixels(state.poiIPs.poiThreeIP);
+
+                document.getElementById('routerThree').textContent = state.settings.routerThree;
+                document.getElementById('channelThree').textContent = state.settings.channelThree;
+                document.getElementById('patternThree').textContent = state.settings.patternThree;
+                updatePixelDisplayForPoi('three', state.settings.pixelsThree || '?');
+            }
+
+            // Update POI 4 State
+            if (poiFourData) {
+                state.settings.routerFour = poiFourData.router;
+                state.settings.passwordFour = poiFourData.password;
+                state.settings.channelFour = poiFourData.channel;
+                state.settings.patternFour = poiFourData.pattern;
+                state.settings.pixelsFour = await fetchNumberOfPixels(state.poiIPs.poiFourIP);
+
+                document.getElementById('routerFour').textContent = state.settings.routerFour;
+                document.getElementById('channelFour').textContent = state.settings.channelFour;
+                document.getElementById('patternFour').textContent = state.settings.patternFour;
+                updatePixelDisplayForPoi('four', state.settings.pixelsFour || '?');
+            }
             highlightActiveButton(mainData.pattern);
             // Force UI refresh
             saveState();
@@ -246,6 +309,18 @@ function initializeFetchButton() {
             if (passwordAux) {
                 passwordAux.textContent = '******';
                 passwordAux.dataset.actualPassword = state.settings.passwordTwo;
+            }
+            
+            // Also update POI 3 & 4 display to show asterisks
+            const passwordThree = document.getElementById('passwordThree');
+            if (passwordThree) {
+                passwordThree.textContent = '******';
+                passwordThree.dataset.actualPassword = state.settings.passwordThree;
+            }
+            const passwordFour = document.getElementById('passwordFour');
+            if (passwordFour) {
+                passwordFour.textContent = '******';
+                passwordFour.dataset.actualPassword = state.settings.passwordFour;
             }
         }
     });
