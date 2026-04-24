@@ -170,31 +170,53 @@ function checkStatus(ip) {
 }
 
 function updateStatusIndicators() {
-    // Set initial state to checking
     const mainElement = document.getElementById('mainStatus');
     const auxElement = document.getElementById('auxStatus');
+    const poiThreeElement = document.getElementById('poiThreeStatus');
+    const poiFourElement = document.getElementById('poiFourStatus');
     
-    if (!mainElement.classList.contains('online') && 
-        !mainElement.classList.contains('offline')) {
-        mainElement.className = 'status-indicator';
-        mainElement.textContent = 'Main POI: Checking...';
-        auxElement.className = 'status-indicator';
-        auxElement.textContent = 'Aux POI: Checking...';
-    }
-
+    const isRouterMode = state.poiIPs.routerMode;
+    const hasPoiThree = isRouterMode && state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0';
+    const hasPoiFour = isRouterMode && state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0';
+    
     // Actual status check
-    Promise.allSettled([
+    const checkPromises = [
         checkStatus(state.poiIPs.mainIP),
         checkStatus(state.poiIPs.auxIP)
-    ]).then(([mainResult, auxResult]) => {
+    ];
+    
+    if (hasPoiThree) {
+        checkPromises.push(checkStatus(state.poiIPs.poiThreeIP));
+    } else {
+        checkPromises.push(Promise.resolve('offline'));
+    }
+    if (hasPoiFour) {
+        checkPromises.push(checkStatus(state.poiIPs.poiFourIP));
+    } else {
+        checkPromises.push(Promise.resolve('offline'));
+    }
+    
+    Promise.allSettled(checkPromises).then(([mainResult, auxResult, threeResult, fourResult]) => {
         const mainStatus = mainResult.status === 'fulfilled' ? mainResult.value : 'offline';
         const auxStatus = auxResult.status === 'fulfilled' ? auxResult.value : 'offline';
-
+        const threeStatus = threeResult.status === 'fulfilled' ? threeResult.value : 'offline';
+        const fourStatus = fourResult.status === 'fulfilled' ? fourResult.value : 'offline';
+        
         mainElement.className = `status-indicator ${mainStatus}`;
         mainElement.textContent = `Main POI: ${mainStatus === 'online' ? 'Online' : 'Offline'}`;
         
         auxElement.className = `status-indicator ${auxStatus}`;
         auxElement.textContent = `Aux POI: ${auxStatus === 'online' ? 'Online' : 'Offline'}`;
+        
+        if (poiThreeElement) {
+            poiThreeElement.className = `status-indicator ${threeStatus}`;
+            poiThreeElement.textContent = `POI 3: ${threeStatus === 'online' ? 'Online' : 'Offline'}`;
+        }
+        
+        if (poiFourElement) {
+            poiFourElement.className = `status-indicator ${fourStatus}`;
+            poiFourElement.textContent = `POI 4: ${fourStatus === 'online' ? 'Online' : 'Offline'}`;
+        }
     });
 }
 
