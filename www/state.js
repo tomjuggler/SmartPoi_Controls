@@ -98,6 +98,8 @@ function loadState() {
     } else {
         state.poiIPs.mainIP = "192.168.1.1";
         state.poiIPs.auxIP = "192.168.1.78";
+        state.poiIPs.poiThreeIP = saved.poiIPs?.poiThreeIP || "0.0.0.0";
+        state.poiIPs.poiFourIP = saved.poiIPs?.poiFourIP || "0.0.0.0";
     }
 
     // Initialize manual IP inputs with current values
