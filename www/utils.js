@@ -52,10 +52,12 @@ function handleCriticalError(error) {
     });
 }
 
-async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true) {
+async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true, threeAvailable = false, fourAvailable = false) {
   const restoreTasks = [];
   if(mainAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.mainIP));
   if(auxAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.auxIP));
+  if(threeAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiThreeIP));
+  if(fourAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiFourIP));
   
   await Promise.allSettled(restoreTasks);
   await delay(1000); // Final safety delay
@@ -182,6 +184,17 @@ function updatePixelDisplayForPoi(poiType, pixelCount) {
     }
 }
 
+function getPoiIPs() {
+    const ips = [state.poiIPs.mainIP, state.poiIPs.auxIP];
+    if (state.poiIPs.routerMode && state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiThreeIP);
+    }
+    if (state.poiIPs.routerMode && state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiFourIP);
+    }
+    return ips;
+}
+
 function sliderToValue(sliderPercent) {
     return sliderPercent <= 50 ? 
         0.5 + Math.floor((sliderPercent / 50) * 60) * 0.5 : 
@@ -218,6 +231,8 @@ function saveState() {
         poiIPs: {
             mainIP: state.poiIPs.mainIP,
             auxIP: state.poiIPs.auxIP,
+            poiThreeIP: state.poiIPs.poiThreeIP,
+            poiFourIP: state.poiIPs.poiFourIP,
             routerMode: state.poiIPs.routerMode,
             savedRouterIPs: state.poiIPs.savedRouterIPs,
             subnet: state.poiIPs.subnet

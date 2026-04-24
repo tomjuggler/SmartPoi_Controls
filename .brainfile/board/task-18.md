@@ -1,7 +1,7 @@
 ---
 id: task-18
 title: "Phase 4a: Update fetchSettings() and initializeFetchButton() for 4 POIs"
-column: todo
+column: review
 position: 9
 description: In controls.js, update fetchSettings() to return fields for POI 3 & 4 along with the existing POIs. Then update initializeFetchButton() to call fetchSettings() for all 4 IPs, and update the DOM display sections for POI 3 and POI 4 (routerThree, passwordThree, channelThree, patternThree, pixelsThree and similarly for POI 4). Also update the 'catch' error handler to gracefully handle missing extra POIs. The extra fetch calls should only be made when routerMode is true and the IP is not 0.0.0.0.
 priority: high
@@ -28,10 +28,15 @@ subtasks:
     completed: false
 createdAt: "2026-04-24T06:27:58.329Z"
 contract:
-  status: draft
+  status: delivered
   constraints:
     - Depends on state fields + HTML Fetch Settings sections
-updatedAt: "2026-04-24T06:29:12.880Z"
+  metrics:
+    pickedUpAt: "2026-04-24T06:57:28.970Z"
+    reworkCount: 0
+    deliveredAt: "2026-04-24T07:01:53.790Z"
+    duration: 265
+updatedAt: "2026-04-24T07:01:53.790Z"
 dependsOn:
   - task-10
   - task-13

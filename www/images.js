@@ -1,23 +1,16 @@
 // Pattern sending function for image activation
 async function sendPatternToBothPOIs(pattern) {
     try {
-        // Send pattern to both POIs with timeout for backwards compatibility
-        const requests = [
-            fetch(`http://${state.poiIPs.mainIP}/pattern?patternChooserChange=${pattern}`, { 
+        // Send pattern to all connected POIs with timeout for backwards compatibility
+        const requests = getPoiIPs().map(ip =>
+            fetch(`http://${ip}/pattern?patternChooserChange=${pattern}`, { 
                 method: 'GET',
                 signal: AbortSignal.timeout(2000) 
             }).catch(error => {
-                console.log('Pattern request to main POI failed (backwards compatibility):', error.message);
-                // Don't show error message for timeout - device might not support this feature
-            }),
-            fetch(`http://${state.poiIPs.auxIP}/pattern?patternChooserChange=${pattern}`, { 
-                method: 'GET',
-                signal: AbortSignal.timeout(2000)
-            }).catch(error => {
-                console.log('Pattern request to aux POI failed (backwards compatibility):', error.message);
+                console.log(`Pattern request to ${ip} failed (backwards compatibility):`, error.message);
                 // Don't show error message for timeout - device might not support this feature
             })
-        ];
+        );
 
         await Promise.allSettled(requests);
         createMessage(`Pattern ${pattern} activated`);

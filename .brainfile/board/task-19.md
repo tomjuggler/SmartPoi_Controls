@@ -1,7 +1,7 @@
 ---
 id: task-19
 title: "Phase 4b: Update updatePixelDisplayForPoi() for POI 3 and POI 4"
-column: todo
+column: review
 position: 10
 description: |-
   In utils.js, update updatePixelDisplayForPoi() to handle 'three' and 'four' POI types. Currently it handles 'main' (updates state.settings.pixels + calls updateAllPixelDisplays() which sets global pixelInput/uploadPixelInput) and 'aux' (updates state.settings.pixelsTwo + pixelsTwo element only).
@@ -33,10 +33,15 @@ subtasks:
     completed: false
 createdAt: "2026-04-24T06:28:10.898Z"
 contract:
-  status: draft
+  status: delivered
   constraints:
     - Depends on state fields + HTML elements for pixel display
-updatedAt: "2026-04-24T06:35:35.773Z"
+  metrics:
+    pickedUpAt: "2026-04-24T07:02:18.163Z"
+    reworkCount: 0
+    deliveredAt: "2026-04-24T07:06:52.024Z"
+    duration: 274
+updatedAt: "2026-04-24T07:06:52.024Z"
 dependsOn:
   - task-10
   - task-13

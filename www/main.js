@@ -499,31 +499,52 @@ async function submitRouterMode() {
     const routerMode = document.getElementById('routerModeCheckbox').checked;
     
     try {
-        // Update both POIs first
-        await Promise.all([
-            fetch(`http://${state.poiIPs.mainIP}/router?router=${routerMode ? 1 : 0}`),
-            fetch(`http://${state.poiIPs.auxIP}/router?router=${routerMode ? 1 : 0}`)
-        ]);
+        // Update all POIs first
+        await Promise.all(getPoiIPs().map(ip =>
+            fetch(`http://${ip}/router?router=${routerMode ? 1 : 0}`)
+        ));
 
         // Update local state
         state.poiIPs.routerMode = routerMode;
         
         const mainIpInput = document.getElementById('manualMainIp');
         const auxIpInput = document.getElementById('manualAuxIp');
+        const poiThreeIpInput = document.getElementById('manualPoiThreeIp');
+        const poiFourIpInput = document.getElementById('manualPoiFourIp');
         
         if (routerMode) {
             // Restore saved router mode IPs
             state.poiIPs.mainIP = state.poiIPs.savedRouterIPs.main || "192.168.1.1";
             state.poiIPs.auxIP = state.poiIPs.savedRouterIPs.aux || "192.168.1.78";
+            state.poiIPs.poiThreeIP = state.poiIPs.savedRouterIPs.three || "0.0.0.0";
+            state.poiIPs.poiFourIP = state.poiIPs.savedRouterIPs.four || "0.0.0.0";
         } else {
             // Save current IPs before switching to AP mode
             state.poiIPs.savedRouterIPs = {
                 main: state.poiIPs.mainIP,
-                aux: state.poiIPs.auxIP
+                aux: state.poiIPs.auxIP,
+                three: state.poiIPs.poiThreeIP,
+                four: state.poiIPs.poiFourIP
             };
             // Set hardcoded AP mode IPs
             state.poiIPs.mainIP = "192.168.1.1";
             state.poiIPs.auxIP = "192.168.1.78";
+            state.poiIPs.poiThreeIP = "0.0.0.0";
+            state.poiIPs.poiFourIP = "0.0.0.0";
+        }
+
+        // Update inputs and placeholders
+        mainIpInput.value = state.poiIPs.mainIP;
+        mainIpInput.placeholder = state.poiIPs.mainIP;
+        auxIpInput.value = state.poiIPs.auxIP;
+        auxIpInput.placeholder = state.poiIPs.auxIP;
+        if (poiThreeIpInput) {
+            poiThreeIpInput.value = state.poiIPs.poiThreeIP;
+            poiThreeIpInput.placeholder = state.poiIPs.poiThreeIP;
+        }
+        if (poiFourIpInput) {
+            poiFourIpInput.value = state.poiIPs.poiFourIP;
+            poiFourIpInput.placeholder = state.poiIPs.poiFourIP;
         }
 
         saveState();

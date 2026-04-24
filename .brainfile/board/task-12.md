@@ -1,7 +1,7 @@
 ---
 id: task-12
 title: "Phase 2b: HTML - Add status indicators for POI 3 & 4"
-column: todo
+column: review
 position: 3
 description: "In index.html, add 2 new status indicator div elements alongside the existing mainStatus and auxStatus. New IDs: \"poiThreeStatus\" and \"poiFourStatus\", each with class \"status-indicator offline\" and initial text \"POI 3: Offline\" / \"POI 4: Offline\". These should be inside the .status-indicators div in the Controls tab."
 priority: high
@@ -22,10 +22,15 @@ subtasks:
     completed: false
 createdAt: "2026-04-24T06:26:54.982Z"
 contract:
-  status: draft
+  status: delivered
   constraints:
     - HTML for status indicators — can be done in parallel with state
-updatedAt: "2026-04-24T06:29:12.880Z"
+  metrics:
+    pickedUpAt: "2026-04-24T06:45:30.135Z"
+    reworkCount: 0
+    deliveredAt: "2026-04-24T06:46:01.805Z"
+    duration: 32
+updatedAt: "2026-04-24T06:46:01.805Z"
 ---
 
 ## Description

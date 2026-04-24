@@ -20,10 +20,12 @@ async function verifyPoiConnection(ip) {
   return false;
 }
 
-async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true) {
+async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true, threeAvailable = false, fourAvailable = false) {
   const restoreTasks = [];
   if(mainAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.mainIP));
   if(auxAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.auxIP));
+  if(threeAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiThreeIP));
+  if(fourAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiFourIP));
   
   await Promise.allSettled(restoreTasks);
   await delay(1000); // Final safety delay

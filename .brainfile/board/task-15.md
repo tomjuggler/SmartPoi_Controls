@@ -1,7 +1,7 @@
 ---
 id: task-15
 title: "Phase 3b: Add networkSetPoiThreeIp() and networkSetPoiFourIp() functions"
-column: todo
+column: review
 position: 6
 description: "In network.js, add 2 new functions: window.networkSetPoiThreeIp() and window.networkSetPoiFourIp(). These follow the same pattern as networkSetMainIp/networkSetAuxIp: check routerMode is active, validate the IP input, save to state.poiIPs.poiThreeIP/poiFourIP, persist with saveState(), update status indicators, and show a confirmation message. Also add global wrapper functions setPoiThreeIp() and setPoiFourIp() in main.js (like setMainIp/setAuxIp) that call the network functions."
 priority: high
@@ -27,10 +27,15 @@ subtasks:
     completed: false
 createdAt: "2026-04-24T06:27:26.285Z"
 contract:
-  status: draft
+  status: delivered
   constraints:
     - Depends on HTML inputs existing and fastScanNetwork returning 4 IPs
-updatedAt: "2026-04-24T06:29:12.880Z"
+  metrics:
+    pickedUpAt: "2026-04-24T06:51:41.021Z"
+    reworkCount: 0
+    deliveredAt: "2026-04-24T06:53:45.341Z"
+    duration: 124
+updatedAt: "2026-04-24T06:53:45.341Z"
 dependsOn:
   - task-11
   - task-14

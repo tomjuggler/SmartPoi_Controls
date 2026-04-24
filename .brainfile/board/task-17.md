@@ -1,7 +1,7 @@
 ---
 id: task-17
 title: "Phase 3d: Update updateNetworkModeDisplay() for extra IP inputs"
-column: todo
+column: review
 position: 8
 description: "In utils.js, update updateNetworkModeDisplay() to handle the 2 new manual IP input fields. When routerMode is active: show/enable manualPoiThreeIp and manualPoiFourIp inputs. When AP mode: disable these inputs and show placeholder values. Also create a CSS class (e.g., .extra-poi-input or .router-only) in styles.css that can be used to conditionally show/hide elements. The extra POI sections should only render meaningfully in Router Mode."
 priority: high
@@ -24,10 +24,15 @@ subtasks:
     completed: false
 createdAt: "2026-04-24T06:27:48.171Z"
 contract:
-  status: draft
+  status: delivered
   constraints:
     - Depends on extra IP input fields existing in DOM
-updatedAt: "2026-04-24T06:29:12.880Z"
+  metrics:
+    pickedUpAt: "2026-04-24T06:55:43.968Z"
+    reworkCount: 1
+    deliveredAt: "2026-04-24T06:57:08.327Z"
+    duration: 84
+updatedAt: "2026-04-24T06:57:08.327Z"
 dependsOn:
   - task-11
 ---
