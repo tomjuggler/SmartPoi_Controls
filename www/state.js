@@ -18,11 +18,15 @@ const state = {
     poiIPs: {
         mainIP: "192.168.1.1", 
         auxIP: "192.168.1.78",
+        poiThreeIP: "0.0.0.0",
+        poiFourIP: "0.0.0.0",
         routerMode: false,
         subnet: "",
         savedRouterIPs: {
             main: "",
-            aux: ""
+            aux: "",
+            three: "",
+            four: ""
         }
     },
     currentTab: "controls",
@@ -38,7 +42,17 @@ const state = {
         pixels: 120,
         brightness: 20,
         speed: 0.5,
-        stripType: "WS2812"
+        stripType: "WS2812",
+        pixelsThree: '?',
+        pixelsFour: '?',
+        routerThree: 'N/A',
+        passwordThree: 'N/A',
+        channelThree: 'N/A',
+        patternThree: 'N/A',
+        routerFour: 'N/A',
+        passwordFour: 'N/A',
+        channelFour: 'N/A',
+        patternFour: 'N/A',
     },
     currentModalImage: null,
     magicBridge: {
@@ -70,13 +84,17 @@ function loadState() {
     state.poiIPs.routerMode = saved.poiIPs?.routerMode || false;
     state.poiIPs.savedRouterIPs = saved.poiIPs?.savedRouterIPs || {
         main: "192.168.1.1",
-        aux: "192.168.1.78"
+        aux: "192.168.1.78",
+        three: "0.0.0.0",
+        four: "0.0.0.0"
     };
 
     // Set IPs based on current mode
     if (state.poiIPs.routerMode) {
         state.poiIPs.mainIP = saved.poiIPs?.mainIP || "192.168.1.1";
         state.poiIPs.auxIP = saved.poiIPs?.auxIP || "192.168.1.78";
+        state.poiIPs.poiThreeIP = saved.poiIPs?.poiThreeIP || "0.0.0.0";
+        state.poiIPs.poiFourIP = saved.poiIPs?.poiFourIP || "0.0.0.0";
     } else {
         state.poiIPs.mainIP = "192.168.1.1";
         state.poiIPs.auxIP = "192.168.1.78";
@@ -90,6 +108,13 @@ function loadState() {
     if (mainIpInput) mainIpInput.placeholder = state.poiIPs.mainIP;
     if (auxIpInput) auxIpInput.value = state.poiIPs.auxIP;
     if (auxIpInput) auxIpInput.placeholder = state.poiIPs.auxIP;
+    const poiThreeIpInput = document.getElementById('manualPoiThreeIp');
+    const poiFourIpInput = document.getElementById('manualPoiFourIp');
+    
+    if (poiThreeIpInput) poiThreeIpInput.value = state.poiIPs.poiThreeIP;
+    if (poiThreeIpInput) poiThreeIpInput.placeholder = state.poiIPs.poiThreeIP;
+    if (poiFourIpInput) poiFourIpInput.value = state.poiIPs.poiFourIP;
+    if (poiFourIpInput) poiFourIpInput.placeholder = state.poiIPs.poiFourIP;
 
     // Update UI elements
     const routerModeCheckbox = document.getElementById('routerModeCheckbox');
