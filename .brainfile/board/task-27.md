@@ -1,7 +1,7 @@
 ---
 id: task-27
 title: "Phase 3c: Update updateStatusIndicators() to check all 8 POIs"
-column: todo
+column: review
 position: 8
 description: Update www/network.js updateStatusIndicators() to extend status checking from 4 to 8 POIs. Add POI 5-8 element references (poiFiveStatus through poiEightStatus), conditional checks based on routerMode and IP != '0.0.0.0', promise push to checkPromises for each active POI, and status update for each POI element. Must follow the existing pattern from POI 3/4 additions.
 priority: high
@@ -10,6 +10,19 @@ tags:
   - network
   - phase-3
 createdAt: "2026-04-28T14:03:34.573Z"
+contract:
+  status: delivered
+  deliverables:
+    - type: file
+      path: www/network.js
+      description: updateStatusIndicators() updated for 8 POIs
+  metrics:
+    readyAt: "2026-04-28T14:39:19.842Z"
+    pickedUpAt: "2026-04-28T14:39:22.884Z"
+    reworkCount: 0
+    deliveredAt: "2026-04-28T14:41:21.405Z"
+    duration: 119
+updatedAt: "2026-04-28T14:41:21.405Z"
 ---
 
 ## Description
