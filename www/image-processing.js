@@ -1,5 +1,5 @@
 // Shared Image Processing Function
-async function processImageFile(file) {
+async function processImageFile(file, pixelCount) {
     const reader = new FileReader();
     
     return new Promise((resolve, reject) => {
@@ -18,13 +18,13 @@ async function processImageFile(file) {
                 }
                 
                 const aspectRatio = rotatedWidth / (rotatedHeight * compressionFactor);
-                const targetHeight = Math.floor(state.settings.pixels / aspectRatio);
+                const targetPixels = pixelCount || state.settings.pixels;
+                const targetHeight = Math.floor(targetPixels / aspectRatio);
                 
                 const processed = rotatedImage.resize(
-                    state.settings.pixels,  // width
+                    targetPixels,  // width
                     targetHeight            // height
                 );
-
                 const binaryData = [];
                 processed.scan(0, 0, processed.bitmap.width, processed.bitmap.height, 
                     (x, y, idx) => {
