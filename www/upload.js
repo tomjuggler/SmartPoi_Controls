@@ -20,12 +20,16 @@ async function verifyPoiConnection(ip) {
   return false;
 }
 
-async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true, threeAvailable = false, fourAvailable = false) {
+async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true, threeAvailable = false, fourAvailable = false, fiveAvailable = false, sixAvailable = false, sevenAvailable = false, eightAvailable = false) {
   const restoreTasks = [];
   if(mainAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.mainIP));
   if(auxAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.auxIP));
   if(threeAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiThreeIP));
   if(fourAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiFourIP));
+  if(fiveAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiFiveIP));
+  if(sixAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiSixIP));
+  if(sevenAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiSevenIP));
+  if(eightAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiEightIP));
   
   await Promise.allSettled(restoreTasks);
   await delay(1000); // Final safety delay
@@ -72,13 +76,19 @@ async function handleUpload() {
         createMessage('Starting upload process...', 'info');
         
         // Verify POI connections
-        const [mainAvailable, auxAvailable] = await Promise.all([
+        const [mainAvailable, auxAvailable, threeAvailable, fourAvailable, fiveAvailable, sixAvailable, sevenAvailable, eightAvailable] = await Promise.all([
             verifyPoiConnection(state.poiIPs.mainIP),
-            verifyPoiConnection(state.poiIPs.auxIP)
+            verifyPoiConnection(state.poiIPs.auxIP),
+            verifyPoiConnection(state.poiIPs.poiThreeIP),
+            verifyPoiConnection(state.poiIPs.poiFourIP),
+            verifyPoiConnection(state.poiIPs.poiFiveIP),
+            verifyPoiConnection(state.poiIPs.poiSixIP),
+            verifyPoiConnection(state.poiIPs.poiSevenIP),
+            verifyPoiConnection(state.poiIPs.poiEightIP)
         ]);
 
-        if (!mainAvailable && !auxAvailable) {
-            throw new Error("Both POIs are unavailable - upload cannot proceed");
+        if (!mainAvailable && !auxAvailable && !threeAvailable && !fourAvailable && !fiveAvailable && !sixAvailable && !sevenAvailable && !eightAvailable) {
+            throw new Error("No POIs are available - upload cannot proceed");
         }
 
         // Store original patterns
@@ -88,6 +98,12 @@ async function handleUpload() {
         const patternTasks = [];
         if (mainAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.mainIP));
         if (auxAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.auxIP));
+        if (threeAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiThreeIP));
+        if (fourAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiFourIP));
+        if (fiveAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiFiveIP));
+        if (sixAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiSixIP));
+        if (sevenAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiSevenIP));
+        if (eightAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiEightIP));
         await Promise.all(patternTasks);
         await delay(state.upload.config.INTER_POI_DELAY);
 
@@ -110,13 +126,59 @@ async function handleUpload() {
                     .then(() => createMessage("Aux POI upload complete"))
             );
         }
+        if (threeAvailable) {
+            uploadTasks.push(
+                processPoiWithBackoff(filesToUpload, state.poiIPs.poiThreeIP, "POI 3")
+                    .then(() => createMessage("POI 3 upload complete"))
+            );
+        }
+        if (fourAvailable) {
+            uploadTasks.push(
+                processPoiWithBackoff(filesToUpload, state.poiIPs.poiFourIP, "POI 4")
+                    .then(() => createMessage("POI 4 upload complete"))
+            );
+        }
+        if (fiveAvailable) {
+            uploadTasks.push(
+                processPoiWithBackoff(filesToUpload, state.poiIPs.poiFiveIP, "POI 5")
+                    .then(() => createMessage("POI 5 upload complete"))
+            );
+        }
+        if (sixAvailable) {
+            uploadTasks.push(
+                processPoiWithBackoff(filesToUpload, state.poiIPs.poiSixIP, "POI 6")
+                    .then(() => createMessage("POI 6 upload complete"))
+            );
+        }
+        if (sevenAvailable) {
+            uploadTasks.push(
+                processPoiWithBackoff(filesToUpload, state.poiIPs.poiSevenIP, "POI 7")
+                    .then(() => createMessage("POI 7 upload complete"))
+            );
+        }
+        if (eightAvailable) {
+            uploadTasks.push(
+                processPoiWithBackoff(filesToUpload, state.poiIPs.poiEightIP, "POI 8")
+                    .then(() => createMessage("POI 8 upload complete"))
+            );
+        }
 
         await Promise.all(uploadTasks);
         
         // Restore original patterns
-        await restoreOriginalPatterns(mainAvailable, auxAvailable);
+        // Build connected POIs message
+        const connectedPOIs = [];
+        if (mainAvailable) connectedPOIs.push('Main POI');
+        if (auxAvailable) connectedPOIs.push('Aux POI');
+        if (threeAvailable) connectedPOIs.push('POI 3');
+        if (fourAvailable) connectedPOIs.push('POI 4');
+        if (fiveAvailable) connectedPOIs.push('POI 5');
+        if (sixAvailable) connectedPOIs.push('POI 6');
+        if (sevenAvailable) connectedPOIs.push('POI 7');
+        if (eightAvailable) connectedPOIs.push('POI 8');
+        await restoreOriginalPatterns(mainAvailable, auxAvailable, threeAvailable, fourAvailable, fiveAvailable, sixAvailable, sevenAvailable, eightAvailable);
         
-        createMessage(`Upload completed to ${mainAvailable ? 'Main POI' : ''}${auxAvailable ? ' and Aux POI' : ''}`);
+        createMessage(`Upload completed to ${connectedPOIs.length > 0 ? connectedPOIs.join(', ') : 'No POIs'}`);
 
     } catch (error) {
         handleCriticalError(error);
