@@ -1,7 +1,7 @@
 ---
 id: task-13
 title: "Phase 2c: HTML - Add Fetch Settings display sections for POI 3 & 4"
-column: review
+column: done
 position: 4
 description: "In index.html, add 2 new poi-status-group divs for POI 3 and POI 4 inside the .status-section div, following the existing Aux POI block. Each should display: Router, Password (with toggle), Channel, Pattern, Pixels. Use IDs: routerThree, passwordThree, channelThree, patternThree, pixelsThree (and similarly for Four with ...Four suffix). These sections should only be shown when routerMode is active (controlled via CSS visibility or class toggling)."
 priority: high

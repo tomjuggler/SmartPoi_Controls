@@ -1,7 +1,7 @@
 ---
 id: task-12
 title: "Phase 2b: HTML - Add status indicators for POI 3 & 4"
-column: review
+column: done
 position: 3
 description: "In index.html, add 2 new status indicator div elements alongside the existing mainStatus and auxStatus. New IDs: \"poiThreeStatus\" and \"poiFourStatus\", each with class \"status-indicator offline\" and initial text \"POI 3: Offline\" / \"POI 4: Offline\". These should be inside the .status-indicators div in the Controls tab."
 priority: high

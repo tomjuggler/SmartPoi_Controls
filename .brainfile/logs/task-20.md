@@ -1,7 +1,7 @@
 ---
 id: task-20
 title: "Phase 4c: Update saveState() and loadState() for new POI settings"
-column: review
+column: done
 position: 11
 description: In utils.js, update saveState() to persist the new settings fields for POI 3 & 4 (pixelsThree, pixelsFour, routerThree, passwordThree, channelThree, patternThree and the Four variants). Also update loadState() in state.js to restore these fields from localStorage and apply defaults if missing. The state.settings object should be extended with the new POI fields so they survive page reloads.
 priority: high

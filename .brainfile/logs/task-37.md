@@ -1,7 +1,7 @@
 ---
 id: task-37
 title: "Phase 9: Run cordova prepare to propagate www/ changes to platforms"
-column: todo
+column: done
 position: 18
 description: After all Phases 1-8 are complete and all www/ source files are updated, run `cordova prepare` (or the equivalent build command) to propagate the www/ changes to the compiled platform directories (platforms/android/, platforms/electron/). The platforms are compiled outputs, not manually edited — they are regenerated from www/ via Cordova build tools. No manual file copying is needed.
 priority: low

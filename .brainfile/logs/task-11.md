@@ -1,7 +1,7 @@
 ---
 id: task-11
 title: "Phase 2a: HTML - Add manual IP inputs for POI 3 & 4 in Network Discovery"
-column: review
+column: done
 position: 2
 description: "In index.html, within the Network Discovery section (inside the manual-ip-section div), add 2 new manual-ip-row divs for POI 3 and POI 4. Each should have: an input with id \"manualPoiThreeIp\" (placeholder \"0.0.0.0\"), a button with onclick=\"setPoiThreeIp()\" labelled \"Set POI 3\", and an error span. Same for POI 4 with id \"manualPoiFourIp\" and onclick=\"setPoiFourIp()\". These should be visually indicated as optional and only relevant in Router Mode."
 priority: high

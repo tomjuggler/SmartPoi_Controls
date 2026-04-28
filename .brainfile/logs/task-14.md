@@ -1,7 +1,7 @@
 ---
 id: task-14
 title: "Phase 3a: Update fastScanNetwork() and initializeNetworkDiscovery() for 4 POIs"
-column: review
+column: done
 position: 5
 description: In network.js, update fastScanNetwork() to return up to 4 devices instead of 2. The function currently returns { mainIP, auxIP, foundDevices }. Extend to return { mainIP, auxIP, poiThreeIP, poiFourIP, foundDevices }. Also update initializeNetworkDiscovery() to assign poiThreeIP (foundDevices[2]) and poiFourIP (foundDevices[3]) after scanning, defaulting to "0.0.0.0" if fewer than 4 devices are found. Save the new IPs into state and update the manual IP input fields.
 priority: high

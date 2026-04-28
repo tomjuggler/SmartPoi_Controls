@@ -1,7 +1,7 @@
 ---
 id: task-10
 title: "Phase 1: Extend state data model for POI 3 & 4"
-column: review
+column: done
 position: 1
 description: |-
   Add poiThreeIP and poiFourIP to state.poiIPs (default "0.0.0.0"). Add savedRouterIPs.three and .four. Add state.settings fields: pixelsThree, pixelsFour, routerThree, passwordThree, channelThree, patternThree (and similarly for Four). Update loadState() in state.js to restore these new fields with defaults.

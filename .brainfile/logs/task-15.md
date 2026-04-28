@@ -1,7 +1,7 @@
 ---
 id: task-15
 title: "Phase 3b: Add networkSetPoiThreeIp() and networkSetPoiFourIp() functions"
-column: review
+column: done
 position: 6
 description: "In network.js, add 2 new functions: window.networkSetPoiThreeIp() and window.networkSetPoiFourIp(). These follow the same pattern as networkSetMainIp/networkSetAuxIp: check routerMode is active, validate the IP input, save to state.poiIPs.poiThreeIP/poiFourIP, persist with saveState(), update status indicators, and show a confirmation message. Also add global wrapper functions setPoiThreeIp() and setPoiFourIp() in main.js (like setMainIp/setAuxIp) that call the network functions."
 priority: high

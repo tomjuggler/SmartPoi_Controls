@@ -1,7 +1,7 @@
 ---
 id: task-17
 title: "Phase 3d: Update updateNetworkModeDisplay() for extra IP inputs"
-column: review
+column: done
 position: 8
 description: "In utils.js, update updateNetworkModeDisplay() to handle the 2 new manual IP input fields. When routerMode is active: show/enable manualPoiThreeIp and manualPoiFourIp inputs. When AP mode: disable these inputs and show placeholder values. Also create a CSS class (e.g., .extra-poi-input or .router-only) in styles.css that can be used to conditionally show/hide elements. The extra POI sections should only render meaningfully in Router Mode."
 priority: high
