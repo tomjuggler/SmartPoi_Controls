@@ -37,6 +37,10 @@
                     <div id="auxStatus" class="status-indicator online">Aux POI: Online</div>
                     <div id="poiThreeStatus" class="status-indicator offline router-only">POI 3: Offline</div>
                     <div id="poiFourStatus" class="status-indicator offline router-only">POI 4: Offline</div>
+                    <div id="poiFiveStatus" class="status-indicator offline router-only">POI 5: Offline</div>
+                    <div id="poiSixStatus" class="status-indicator offline router-only">POI 6: Offline</div>
+                    <div id="poiSevenStatus" class="status-indicator offline router-only">POI 7: Offline</div>
+                    <div id="poiEightStatus" class="status-indicator offline router-only">POI 8: Offline</div>
                 </div>
 
                 <div class="control-block">
@@ -111,6 +115,26 @@
                                     <button onclick="setPoiFourIp()">Set POI 4</button>
                                     <span id="poiFourIpError" class="error-message"></span>
                                 </div>
+                                <div class="manual-ip-row router-only" style="opacity: 0.7;">
+                                    <input type="text" id="manualPoiFiveIp" placeholder="0.0.0.0" value="">
+                                    <button onclick="setPoiFiveIp()">Set POI 5</button>
+                                    <span id="poiFiveIpError" class="error-message"></span>
+                                </div>
+                                <div class="manual-ip-row router-only" style="opacity: 0.7;">
+                                    <input type="text" id="manualPoiSixIp" placeholder="0.0.0.0" value="">
+                                    <button onclick="setPoiSixIp()">Set POI 6</button>
+                                    <span id="poiSixIpError" class="error-message"></span>
+                                </div>
+                                <div class="manual-ip-row router-only" style="opacity: 0.7;">
+                                    <input type="text" id="manualPoiSevenIp" placeholder="0.0.0.0" value="">
+                                    <button onclick="setPoiSevenIp()">Set POI 7</button>
+                                    <span id="poiSevenIpError" class="error-message"></span>
+                                </div>
+                                <div class="manual-ip-row router-only" style="opacity: 0.7;">
+                                    <input type="text" id="manualPoiEightIp" placeholder="0.0.0.0" value="">
+                                    <button onclick="setPoiEightIp()">Set POI 8</button>
+                                    <span id="poiEightIpError" class="error-message"></span>
+                                </div>
                                 <div class="router-only" style="font-size: 0.85em; color: #888; margin-top: 6px; padding-left: 4px;">
                                     <i>Additional POIs (optional, Router Mode only)</i>
                                 </div>
@@ -177,6 +201,58 @@
                                 <p>Channel: <span id="channelFour">N/A</span></p>
                                 <p>Pattern: <span id="patternFour">N/A</span></p>
                                 <p>Pixels: <span id="pixelsFour">?</span></p>
+                            </div>
+                            <div class="poi-status-group router-only">
+                                <h4>POI 5:</h4>
+                                <p>Router: <span id="routerFive">N/A</span></p>
+                                <p>Password: 
+                                    <span class="password-container">
+                                        <span id="passwordFive" class="password-text">N/A</span>
+                                        <span class="toggle-password">👁</span>
+                                    </span>
+                                </p>
+                                <p>Channel: <span id="channelFive">N/A</span></p>
+                                <p>Pattern: <span id="patternFive">N/A</span></p>
+                                <p>Pixels: <span id="pixelsFive">?</span></p>
+                            </div>
+                            <div class="poi-status-group router-only">
+                                <h4>POI 6:</h4>
+                                <p>Router: <span id="routerSix">N/A</span></p>
+                                <p>Password: 
+                                    <span class="password-container">
+                                        <span id="passwordSix" class="password-text">N/A</span>
+                                        <span class="toggle-password">👁</span>
+                                    </span>
+                                </p>
+                                <p>Channel: <span id="channelSix">N/A</span></p>
+                                <p>Pattern: <span id="patternSix">N/A</span></p>
+                                <p>Pixels: <span id="pixelsSix">?</span></p>
+                            </div>
+                            <div class="poi-status-group router-only">
+                                <h4>POI 7:</h4>
+                                <p>Router: <span id="routerSeven">N/A</span></p>
+                                <p>Password: 
+                                    <span class="password-container">
+                                        <span id="passwordSeven" class="password-text">N/A</span>
+                                        <span class="toggle-password">👁</span>
+                                    </span>
+                                </p>
+                                <p>Channel: <span id="channelSeven">N/A</span></p>
+                                <p>Pattern: <span id="patternSeven">N/A</span></p>
+                                <p>Pixels: <span id="pixelsSeven">?</span></p>
+                            </div>
+                            <div class="poi-status-group router-only">
+                                <h4>POI 8:</h4>
+                                <p>Router: <span id="routerEight">N/A</span></p>
+                                <p>Password: 
+                                    <span class="password-container">
+                                        <span id="passwordEight" class="password-text">N/A</span>
+                                        <span class="toggle-password">👁</span>
+                                    </span>
+                                </p>
+                                <p>Channel: <span id="channelEight">N/A</span></p>
+                                <p>Pattern: <span id="patternEight">N/A</span></p>
+                                <p>Pixels: <span id="pixelsEight">?</span></p>
                             </div>
                         </div>
                     </div>

@@ -20,13 +20,21 @@ const state = {
         auxIP: "192.168.1.78",
         poiThreeIP: "0.0.0.0",
         poiFourIP: "0.0.0.0",
+        poiFiveIP: "0.0.0.0",
+        poiSixIP: "0.0.0.0",
+        poiSevenIP: "0.0.0.0",
+        poiEightIP: "0.0.0.0",
         routerMode: false,
         subnet: "",
         savedRouterIPs: {
             main: "",
             aux: "",
             three: "",
-            four: ""
+            four: "",
+            five: "",
+            six: "",
+            seven: "",
+            eight: "",
         }
     },
     currentTab: "controls",
@@ -36,7 +44,11 @@ const state = {
     },
     images: {
         main: [],
-        aux: []
+        aux: [],
+        five: [],
+        six: [],
+        seven: [],
+        eight: [],
     },
     settings: {
         pixels: 120,
@@ -53,6 +65,26 @@ const state = {
         passwordFour: 'N/A',
         channelFour: 'N/A',
         patternFour: 'N/A',
+        pixelsFive: '?',
+        pixelsSix: '?',
+        pixelsSeven: '?',
+        pixelsEight: '?',
+        routerFive: 'N/A',
+        passwordFive: 'N/A',
+        channelFive: 'N/A',
+        patternFive: 'N/A',
+        routerSix: 'N/A',
+        passwordSix: 'N/A',
+        channelSix: 'N/A',
+        patternSix: 'N/A',
+        routerSeven: 'N/A',
+        passwordSeven: 'N/A',
+        channelSeven: 'N/A',
+        patternSeven: 'N/A',
+        routerEight: 'N/A',
+        passwordEight: 'N/A',
+        channelEight: 'N/A',
+        patternEight: 'N/A',
     },
     currentModalImage: null,
     magicBridge: {
@@ -86,7 +118,11 @@ function loadState() {
         main: "192.168.1.1",
         aux: "192.168.1.78",
         three: "0.0.0.0",
-        four: "0.0.0.0"
+        four: "0.0.0.0",
+        five: "0.0.0.0",
+        six: "0.0.0.0",
+        seven: "0.0.0.0",
+        eight: "0.0.0.0",
     };
 
     // Set IPs based on current mode
@@ -95,11 +131,19 @@ function loadState() {
         state.poiIPs.auxIP = saved.poiIPs?.auxIP || "192.168.1.78";
         state.poiIPs.poiThreeIP = saved.poiIPs?.poiThreeIP || "0.0.0.0";
         state.poiIPs.poiFourIP = saved.poiIPs?.poiFourIP || "0.0.0.0";
+        state.poiIPs.poiFiveIP = saved.poiIPs?.poiFiveIP || "0.0.0.0";
+        state.poiIPs.poiSixIP = saved.poiIPs?.poiSixIP || "0.0.0.0";
+        state.poiIPs.poiSevenIP = saved.poiIPs?.poiSevenIP || "0.0.0.0";
+        state.poiIPs.poiEightIP = saved.poiIPs?.poiEightIP || "0.0.0.0";
     } else {
         state.poiIPs.mainIP = "192.168.1.1";
         state.poiIPs.auxIP = "192.168.1.78";
         state.poiIPs.poiThreeIP = saved.poiIPs?.poiThreeIP || "0.0.0.0";
         state.poiIPs.poiFourIP = saved.poiIPs?.poiFourIP || "0.0.0.0";
+        state.poiIPs.poiFiveIP = saved.poiIPs?.poiFiveIP || "0.0.0.0";
+        state.poiIPs.poiSixIP = saved.poiIPs?.poiSixIP || "0.0.0.0";
+        state.poiIPs.poiSevenIP = saved.poiIPs?.poiSevenIP || "0.0.0.0";
+        state.poiIPs.poiEightIP = saved.poiIPs?.poiEightIP || "0.0.0.0";
     }
 
     // Initialize manual IP inputs with current values
@@ -117,6 +161,20 @@ function loadState() {
     if (poiThreeIpInput) poiThreeIpInput.placeholder = state.poiIPs.poiThreeIP;
     if (poiFourIpInput) poiFourIpInput.value = state.poiIPs.poiFourIP;
     if (poiFourIpInput) poiFourIpInput.placeholder = state.poiIPs.poiFourIP;
+    
+    const poiFiveIpInput = document.getElementById('manualPoiFiveIp');
+    const poiSixIpInput = document.getElementById('manualPoiSixIp');
+    const poiSevenIpInput = document.getElementById('manualPoiSevenIp');
+    const poiEightIpInput = document.getElementById('manualPoiEightIp');
+    
+    if (poiFiveIpInput) poiFiveIpInput.value = state.poiIPs.poiFiveIP;
+    if (poiFiveIpInput) poiFiveIpInput.placeholder = state.poiIPs.poiFiveIP;
+    if (poiSixIpInput) poiSixIpInput.value = state.poiIPs.poiSixIP;
+    if (poiSixIpInput) poiSixIpInput.placeholder = state.poiIPs.poiSixIP;
+    if (poiSevenIpInput) poiSevenIpInput.value = state.poiIPs.poiSevenIP;
+    if (poiSevenIpInput) poiSevenIpInput.placeholder = state.poiIPs.poiSevenIP;
+    if (poiEightIpInput) poiEightIpInput.value = state.poiIPs.poiEightIP;
+    if (poiEightIpInput) poiEightIpInput.placeholder = state.poiIPs.poiEightIP;
 
     // Update UI elements
     const routerModeCheckbox = document.getElementById('routerModeCheckbox');

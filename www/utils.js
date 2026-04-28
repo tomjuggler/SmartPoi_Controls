@@ -111,6 +111,10 @@ function updateNetworkModeDisplay() {
     document.getElementById('manualAuxIp').placeholder = state.poiIPs.auxIP;
     document.getElementById('manualPoiThreeIp').placeholder = state.poiIPs.poiThreeIP;
     document.getElementById('manualPoiFourIp').placeholder = state.poiIPs.poiFourIP;
+    document.getElementById('manualPoiFiveIp').placeholder = state.poiIPs.poiFiveIP;
+    document.getElementById('manualPoiSixIp').placeholder = state.poiIPs.poiSixIP;
+    document.getElementById('manualPoiSevenIp').placeholder = state.poiIPs.poiSevenIP;
+    document.getElementById('manualPoiEightIp').placeholder = state.poiIPs.poiEightIP;
     
     // Show/hide router-only elements based on mode
     const routerOnlyElements = document.querySelectorAll('.router-only');
@@ -181,6 +185,22 @@ function updatePixelDisplayForPoi(poiType, pixelCount) {
         state.settings.pixelsFour = pixelCount;
         const el = document.getElementById('pixelsFour');
         if (el) el.textContent = displayCount;
+    } else if (poiType === 'five') {
+        state.settings.pixelsFive = pixelCount;
+        const elFive = document.getElementById('pixelsFive');
+        if (elFive) elFive.textContent = displayCount;
+    } else if (poiType === 'six') {
+        state.settings.pixelsSix = pixelCount;
+        const elSix = document.getElementById('pixelsSix');
+        if (elSix) elSix.textContent = displayCount;
+    } else if (poiType === 'seven') {
+        state.settings.pixelsSeven = pixelCount;
+        const elSeven = document.getElementById('pixelsSeven');
+        if (elSeven) elSeven.textContent = displayCount;
+    } else if (poiType === 'eight') {
+        state.settings.pixelsEight = pixelCount;
+        const elEight = document.getElementById('pixelsEight');
+        if (elEight) elEight.textContent = displayCount;
     }
 }
 
@@ -191,6 +211,18 @@ function getPoiIPs() {
     }
     if (state.poiIPs.routerMode && state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') {
         ips.push(state.poiIPs.poiFourIP);
+    }
+    if (state.poiIPs.routerMode && state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiFiveIP);
+    }
+    if (state.poiIPs.routerMode && state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiSixIP);
+    }
+    if (state.poiIPs.routerMode && state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiSevenIP);
+    }
+    if (state.poiIPs.routerMode && state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiEightIP);
     }
     return ips;
 }
@@ -233,6 +265,10 @@ function saveState() {
             auxIP: state.poiIPs.auxIP,
             poiThreeIP: state.poiIPs.poiThreeIP,
             poiFourIP: state.poiIPs.poiFourIP,
+            poiFiveIP: state.poiIPs.poiFiveIP,
+            poiSixIP: state.poiIPs.poiSixIP,
+            poiSevenIP: state.poiIPs.poiSevenIP,
+            poiEightIP: state.poiIPs.poiEightIP,
             routerMode: state.poiIPs.routerMode,
             savedRouterIPs: state.poiIPs.savedRouterIPs,
             subnet: state.poiIPs.subnet

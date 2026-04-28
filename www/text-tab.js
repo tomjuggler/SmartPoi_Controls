@@ -288,15 +288,37 @@ const TextTab = (function() {
             // Get POI IPs from global state
             const mainIp = state?.poiIPs?.mainIP || '192.168.1.1';
             const auxIp = state?.poiIPs?.auxIP || '192.168.1.78';
-            
-            // Determine which POIs to upload to
-            const uploadToMain = selectedPoi === 'main' || selectedPoi === 'both';
-            const uploadToAux = selectedPoi === 'aux' || selectedPoi === 'both';
-            
-            // Collect target IPs
+            const poiThreeIp = state?.poiIPs?.poiThreeIP || '0.0.0.0';
+            const poiFourIp = state?.poiIPs?.poiFourIP || '0.0.0.0';
+            const poiFiveIp = state?.poiIPs?.poiFiveIP || '0.0.0.0';
+            const poiSixIp = state?.poiIPs?.poiSixIP || '0.0.0.0';
+            const poiSevenIp = state?.poiIPs?.poiSevenIP || '0.0.0.0';
+            const poiEightIp = state?.poiIPs?.poiEightIP || '0.0.0.0';
+
+            // Collect target IPs based on selection
             const targetIps = [];
-            if (uploadToMain && mainIp) targetIps.push({ip: mainIp, name: 'Main POI'});
-            if (uploadToAux && auxIp) targetIps.push({ip: auxIp, name: 'Aux POI'});
+            if (selectedPoi === 'both') {
+                targetIps.push({ip: mainIp, name: 'Main POI'});
+                targetIps.push({ip: auxIp, name: 'Aux POI'});
+                const isRouterMode = state?.poiIPs?.routerMode;
+                if (isRouterMode) {
+                    if (poiThreeIp !== '0.0.0.0') targetIps.push({ip: poiThreeIp, name: 'POI 3'});
+                    if (poiFourIp !== '0.0.0.0') targetIps.push({ip: poiFourIp, name: 'POI 4'});
+                    if (poiFiveIp !== '0.0.0.0') targetIps.push({ip: poiFiveIp, name: 'POI 5'});
+                    if (poiSixIp !== '0.0.0.0') targetIps.push({ip: poiSixIp, name: 'POI 6'});
+                    if (poiSevenIp !== '0.0.0.0') targetIps.push({ip: poiSevenIp, name: 'POI 7'});
+                    if (poiEightIp !== '0.0.0.0') targetIps.push({ip: poiEightIp, name: 'POI 8'});
+                }
+            } else {
+                if (selectedPoi === 'main' && mainIp) targetIps.push({ip: mainIp, name: 'Main POI'});
+                if (selectedPoi === 'aux' && auxIp) targetIps.push({ip: auxIp, name: 'Aux POI'});
+                if (selectedPoi === 'three' && poiThreeIp !== '0.0.0.0') targetIps.push({ip: poiThreeIp, name: 'POI 3'});
+                if (selectedPoi === 'four' && poiFourIp !== '0.0.0.0') targetIps.push({ip: poiFourIp, name: 'POI 4'});
+                if (selectedPoi === 'five' && poiFiveIp !== '0.0.0.0') targetIps.push({ip: poiFiveIp, name: 'POI 5'});
+                if (selectedPoi === 'six' && poiSixIp !== '0.0.0.0') targetIps.push({ip: poiSixIp, name: 'POI 6'});
+                if (selectedPoi === 'seven' && poiSevenIp !== '0.0.0.0') targetIps.push({ip: poiSevenIp, name: 'POI 7'});
+                if (selectedPoi === 'eight' && poiEightIp !== '0.0.0.0') targetIps.push({ip: poiEightIp, name: 'POI 8'});
+            }
             
             if (targetIps.length === 0) {
                 throw new Error('No POI IP addresses configured');
@@ -427,6 +449,12 @@ const TextTab = (function() {
         // Get IPs from global state
         const mainIp = state?.poiIPs?.mainIP || '192.168.1.1';
         const auxIp = state?.poiIPs?.auxIP || '192.168.1.78';
+        const poiThreeIp = state?.poiIPs?.poiThreeIP || '0.0.0.0';
+        const poiFourIp = state?.poiIPs?.poiFourIP || '0.0.0.0';
+        const poiFiveIp = state?.poiIPs?.poiFiveIP || '0.0.0.0';
+        const poiSixIp = state?.poiIPs?.poiSixIP || '0.0.0.0';
+        const poiSevenIp = state?.poiIPs?.poiSevenIP || '0.0.0.0';
+        const poiEightIp = state?.poiIPs?.poiEightIP || '0.0.0.0';
         
         // Show checking status
         statusElement.textContent = 'Checking...';
@@ -434,23 +462,33 @@ const TextTab = (function() {
         
         try {
             if (poi === 'both') {
-                // Check both POIs
-                const [mainStatus, auxStatus] = await Promise.allSettled([
-                    checkPoiConnection(mainIp),
-                    checkPoiConnection(auxIp)
-                ]);
+                // Check all active POIs
+                const poiIps = [mainIp, auxIp];
+                const isRouterMode = state?.poiIPs?.routerMode;
                 
-                const mainConnected = mainStatus.status === 'fulfilled' && mainStatus.value;
-                const auxConnected = auxStatus.status === 'fulfilled' && auxStatus.value;
+                if (isRouterMode) {
+                    if (poiThreeIp !== '0.0.0.0') poiIps.push(poiThreeIp);
+                    if (poiFourIp !== '0.0.0.0') poiIps.push(poiFourIp);
+                    if (poiFiveIp !== '0.0.0.0') poiIps.push(poiFiveIp);
+                    if (poiSixIp !== '0.0.0.0') poiIps.push(poiSixIp);
+                    if (poiSevenIp !== '0.0.0.0') poiIps.push(poiSevenIp);
+                    if (poiEightIp !== '0.0.0.0') poiIps.push(poiEightIp);
+                }
                 
-                if (mainConnected && auxConnected) {
-                    statusElement.textContent = 'Both POIs Connected';
+                const results = await Promise.allSettled(
+                    poiIps.map(ip => checkPoiConnection(ip))
+                );
+                
+                const connectedCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+                
+                if (connectedCount === poiIps.length) {
+                    statusElement.textContent = `All ${poiIps.length} POI(s) Connected`;
                     statusElement.className = 'status-indicator online';
-                } else if (mainConnected || auxConnected) {
-                    statusElement.textContent = 'One POI Connected';
+                } else if (connectedCount > 0) {
+                    statusElement.textContent = `${connectedCount}/${poiIps.length} POI(s) Connected`;
                     statusElement.className = 'status-indicator warning';
                 } else {
-                    statusElement.textContent = 'Both POIs Offline';
+                    statusElement.textContent = 'All POIs Offline';
                     statusElement.className = 'status-indicator offline';
                 }
             } else {
@@ -460,7 +498,18 @@ const TextTab = (function() {
                     targetIp = mainIp;
                 } else if (poi === 'aux') {
                     targetIp = auxIp;
-                }
+                } else if (poi === 'three') {
+                    targetIp = poiThreeIp;
+                } else if (poi === 'four') {
+                    targetIp = poiFourIp;
+                } else if (poi === 'five') {
+                    targetIp = poiFiveIp;
+                } else if (poi === 'six') {
+                    targetIp = poiSixIp;
+                } else if (poi === 'seven') {
+                    targetIp = poiSevenIp;
+                } else if (poi === 'eight') {
+                    targetIp = poiEightIp;
                 
                 if (!targetIp) {
                     statusElement.textContent = 'No IP configured';
