@@ -510,6 +510,7 @@ const TextTab = (function() {
                     targetIp = poiSevenIp;
                 } else if (poi === 'eight') {
                     targetIp = poiEightIp;
+                }
                 
                 if (!targetIp) {
                     statusElement.textContent = 'No IP configured';
