@@ -854,7 +854,11 @@ function init() {
     setupTabNavigation();
     setupSwipeDetection();
     initializeNetworkDiscovery();
-    setupImageHandlers();
+    try {
+        setupImageHandlers();
+    } catch(e) {
+        console.warn('setupImageHandlers failed:', e);
+    }
     initializeModal();
     initializeEventListeners();
     initializeSliders();
@@ -878,7 +882,11 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
     initializePatternControls();
     initializeSync();
-    setupImageHandlers();
+    try {
+        setupImageHandlers();
+    } catch(e) {
+        console.warn('setupImageHandlers failed:', e);
+    }
 
     // Initialize sliders after DOM is ready
     setTimeout(() => {

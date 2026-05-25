@@ -321,6 +321,11 @@
     font-weight: 500;
 }
 
+.status-indicator.checking {
+    background: #3a3a1e;
+    border: 1px solid #7a7a2c;
+}
+
 .status-indicator.online {
     background: #1a472a;
     border: 1px solid #2c7a47;
