@@ -23,7 +23,7 @@ async function sendPatternToBothPOIs(pattern) {
 // Long Press Functions
 let longPressTimer = null;
 let longPressTarget = null;
-
+let contextMenuJustShown = false; // Flag to prevent click after context menu
 // File Validation Constants
 const MAX_FILE_SIZE_MB = 10; // Maximum file size in MB
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024; // Convert to bytes
@@ -207,7 +207,10 @@ function handleTouchStart(e) {
     
     longPressTarget = wrapper;
     longPressTimer = setTimeout(() => {
+        contextMenuJustShown = true; // Prevent click after long press
         showContextMenu(wrapper);
+        // Reset flag after a short delay
+        setTimeout(() => { contextMenuJustShown = false; }, 300);
     }, 500); // 500ms for long press
 }
 
@@ -464,6 +467,21 @@ function createBlackImages(containerId, ip) {
         wrapper.addEventListener('mousemove', handleTouchMove);
         wrapper.addEventListener('mouseup', handleTouchEnd);
         wrapper.addEventListener('mouseleave', handleTouchEnd);
+        
+        // Right-click context menu for desktop
+        wrapper.addEventListener('contextmenu', function(e) {
+            e.preventDefault(); // Suppress browser default context menu
+            e.stopPropagation();
+            // Cancel any pending long press timer
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            contextMenuJustShown = true;
+            showContextMenu(wrapper);
+            // Reset flag after a short delay
+            setTimeout(() => { contextMenuJustShown = false; }, 300);
+        });
         // Conditionally add drag-and-drop handlers for desktop devices
         if (typeof window.isDesktopDevice === 'function' && window.isDesktopDevice()) {
             // Drag event handlers for visual feedback
@@ -478,9 +496,13 @@ function createBlackImages(containerId, ip) {
                 handleEnhancedImageDrop(e, ip);
             });
         }
-
         // Click handler for preview and pattern activation
-        wrapper.addEventListener('click', function() {
+        wrapper.addEventListener('click', function(e) {
+            // Skip if context menu was just shown (right-click or long press)
+            if (contextMenuJustShown) {
+                contextMenuJustShown = false;
+                return;
+            }
             // Send pattern HTTP request for this image (pattern 8-69)
             const patternNumber = i + 8; // Map images to patterns 8-69
             sendPatternToBothPOIs(patternNumber);
