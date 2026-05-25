@@ -116,6 +116,7 @@ function initializeNetworkDiscovery() {
             state.poiIPs.routerMode = true;
             saveState();
             updateStatusIndicators();
+            updateNetworkModeDisplay();  // Show/hide router-only elements (POI 3-8 inputs)
 
             // Update UI inputs
             document.getElementById('manualMainIp').value = state.poiIPs.mainIP;
