@@ -524,13 +524,19 @@ async function deleteAllImages() {
         const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         const filenames = Array.from(characters).map(c => `${c}.bin`);
 
-        // Delete from both POIs
+        // Delete from all POIs
         await Promise.all([
             deleteFromPoi(state.poiIPs.mainIP, filenames),
-            deleteFromPoi(state.poiIPs.auxIP, filenames)
+            deleteFromPoi(state.poiIPs.auxIP, filenames),
+            deleteFromPoi(state.poiIPs.poiThreeIP, filenames),
+            deleteFromPoi(state.poiIPs.poiFourIP, filenames),
+            deleteFromPoi(state.poiIPs.poiFiveIP, filenames),
+            deleteFromPoi(state.poiIPs.poiSixIP, filenames),
+            deleteFromPoi(state.poiIPs.poiSevenIP, filenames),
+            deleteFromPoi(state.poiIPs.poiEightIP, filenames)
         ]);
         
-        createMessage('All images deleted from both POIs');
+        createMessage('All images deleted from all POIs');
         refreshAllImages(true);
     } catch (error) {
         console.error('Delete all failed:', error);
