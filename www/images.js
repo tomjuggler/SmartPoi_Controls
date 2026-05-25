@@ -593,6 +593,16 @@ async function getFilesAndDisplay() {
   await getFilesTwo();
 }
 
+    // Also fetch POI 3-8 if in router mode
+    if (state.poiIPs.routerMode) {
+        if (state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0') await getFilesThree();
+        if (state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') await getFilesFour();
+        if (state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0') await getFilesFive();
+        if (state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0') await getFilesSix();
+        if (state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0') await getFilesSeven();
+        if (state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0') await getFilesEight();
+    }
+
 async function getFilesOne() {
   const indicator = document.getElementById('get-files-one-indicator');
   try {
@@ -615,6 +625,151 @@ async function getFilesOne() {
   } catch (error) {
     console.error('Error fetching main images:', error);
     indicator.textContent = "Failed to fetch images";
+  }
+}
+
+
+async function getFilesThree() {
+  const indicator = document.getElementById('get-files-three-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiThreeIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiThreeIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 3 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 3 images:', error);
+    indicator.textContent = "Failed to fetch POI 3 images";
+  }
+}
+
+async function getFilesFour() {
+  const indicator = document.getElementById('get-files-four-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiFourIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiFourIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 4 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 4 images:', error);
+    indicator.textContent = "Failed to fetch POI 4 images";
+  }
+}
+
+async function getFilesFive() {
+  const indicator = document.getElementById('get-files-five-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiFiveIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiFiveIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 5 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 5 images:', error);
+    indicator.textContent = "Failed to fetch POI 5 images";
+  }
+}
+
+async function getFilesSix() {
+  const indicator = document.getElementById('get-files-six-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiSixIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiSixIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 6 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 6 images:', error);
+    indicator.textContent = "Failed to fetch POI 6 images";
+  }
+}
+
+async function getFilesSeven() {
+  const indicator = document.getElementById('get-files-seven-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiSevenIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiSevenIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 7 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 7 images:', error);
+    indicator.textContent = "Failed to fetch POI 7 images";
+  }
+}
+
+async function getFilesEight() {
+  const indicator = document.getElementById('get-files-eight-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiEightIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiEightIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 8 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 8 images:', error);
+    indicator.textContent = "Failed to fetch POI 8 images";
   }
 }
 
