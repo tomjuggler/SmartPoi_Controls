@@ -735,24 +735,11 @@ function loadTabContent(tabName) {
 }
 
 // State management
-function loadPersistedState() {
-    const savedState = JSON.parse(localStorage.getItem('poiState'));
-    if (savedState) {
-        Object.assign(state, savedState);
-    }
-}
-
-function savePersistedState() {
-    localStorage.setItem('poiState', JSON.stringify({
-        poiOneIP: state.poiOneIP,
-        poiTwoIP: state.poiTwoIP,
-        routerMode: state.routerMode,
-        numberOfPixels: state.numberOfPixels,
-        wsStrip: state.wsStrip
-    }));
-}
 
 // Danger Zone Functions (delegated to controls.js)
+
+// Flush state to localStorage before app closes
+window.addEventListener('beforeunload', () => saveState());
 
 // Initialize App
 function init() {

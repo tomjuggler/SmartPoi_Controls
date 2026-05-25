@@ -108,7 +108,9 @@ function initializeSliders() {
     // Clear previous timeout and set new one
     clearTimeout(speedTimeout);
     speedTimeout = setTimeout(() => {
-      updateBothPOIs(`/intervalChange?interval=${value}`);
+        state.settings.speed = value;
+        saveState();
+        updateBothPOIs(`/intervalChange?interval=${value}`);
     }, 300);
   });
 
@@ -128,7 +130,9 @@ function initializeSliders() {
     // Clear previous timeout and set new one
     clearTimeout(brightnessTimeout);
     brightnessTimeout = setTimeout(() => {
-      updateBothPOIs(`/brightness?brt=${value}`);
+        state.settings.brightness = value;
+        saveState();
+        updateBothPOIs(`/brightness?brt=${value}`);
     }, 300);
   });
 }
@@ -162,6 +166,7 @@ function initializeFetchButton() {
             const fetchPoiThree = state.poiIPs.routerMode && state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0';
             const fetchPoiFour = state.poiIPs.routerMode && state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0';
             if (fetchPoiThree) fetchPromises.push(fetchSettings(state.poiIPs.poiThreeIP));
+            if (fetchPoiFour) fetchPromises.push(fetchSettings(state.poiIPs.poiFourIP));
             const fetchPoiFive = state.poiIPs.routerMode && state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0';
             const fetchPoiSix = state.poiIPs.routerMode && state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0';
             const fetchPoiSeven = state.poiIPs.routerMode && state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0';
