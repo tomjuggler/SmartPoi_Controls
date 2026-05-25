@@ -752,100 +752,7 @@ function savePersistedState() {
     }));
 }
 
-// Danger Zone Functions
-async function submitRouterMode() {
-    const routerMode = document.getElementById('routerModeCheckbox').checked;
-    
-    try {
-        // Update all POIs first
-        await Promise.all(getPoiIPs().map(ip =>
-            fetch(`http://${ip}/router?router=${routerMode ? 1 : 0}`)
-        ));
-
-        // Update local state
-        state.poiIPs.routerMode = routerMode;
-        
-        const mainIpInput = document.getElementById('manualMainIp');
-        const auxIpInput = document.getElementById('manualAuxIp');
-        const poiThreeIpInput = document.getElementById('manualPoiThreeIp');
-        const poiFourIpInput = document.getElementById('manualPoiFourIp');
-        const poiFiveIpInput = document.getElementById('manualPoiFiveIp');
-        const poiSixIpInput = document.getElementById('manualPoiSixIp');
-        const poiSevenIpInput = document.getElementById('manualPoiSevenIp');
-        const poiEightIpInput = document.getElementById('manualPoiEightIp');
-        
-        if (routerMode) {
-            // Restore saved router mode IPs
-            state.poiIPs.mainIP = state.poiIPs.savedRouterIPs.main || "192.168.1.1";
-            state.poiIPs.auxIP = state.poiIPs.savedRouterIPs.aux || "192.168.1.78";
-            state.poiIPs.poiThreeIP = state.poiIPs.savedRouterIPs.three || "0.0.0.0";
-            state.poiIPs.poiFourIP = state.poiIPs.savedRouterIPs.four || "0.0.0.0";
-            state.poiIPs.poiFiveIP = state.poiIPs.savedRouterIPs.five || "0.0.0.0";
-            state.poiIPs.poiSixIP = state.poiIPs.savedRouterIPs.six || "0.0.0.0";
-            state.poiIPs.poiSevenIP = state.poiIPs.savedRouterIPs.seven || "0.0.0.0";
-            state.poiIPs.poiEightIP = state.poiIPs.savedRouterIPs.eight || "0.0.0.0";
-        } else {
-            // Save current IPs before switching to AP mode
-            state.poiIPs.savedRouterIPs = {
-                main: state.poiIPs.mainIP,
-                aux: state.poiIPs.auxIP,
-                three: state.poiIPs.poiThreeIP,
-                four: state.poiIPs.poiFourIP,
-                five: state.poiIPs.poiFiveIP,
-                six: state.poiIPs.poiSixIP,
-                seven: state.poiIPs.poiSevenIP,
-                eight: state.poiIPs.poiEightIP
-            };
-            // Set hardcoded AP mode IPs
-            state.poiIPs.mainIP = "192.168.1.1";
-            state.poiIPs.auxIP = "192.168.1.78";
-            state.poiIPs.poiThreeIP = "0.0.0.0";
-            state.poiIPs.poiFourIP = "0.0.0.0";
-            state.poiIPs.poiFiveIP = "0.0.0.0";
-            state.poiIPs.poiSixIP = "0.0.0.0";
-            state.poiIPs.poiSevenIP = "0.0.0.0";
-            state.poiIPs.poiEightIP = "0.0.0.0";
-        }
-
-        // Update inputs and placeholders
-        mainIpInput.value = state.poiIPs.mainIP;
-        mainIpInput.placeholder = state.poiIPs.mainIP;
-        auxIpInput.value = state.poiIPs.auxIP;
-        auxIpInput.placeholder = state.poiIPs.auxIP;
-        if (poiThreeIpInput) {
-            poiThreeIpInput.value = state.poiIPs.poiThreeIP;
-            poiThreeIpInput.placeholder = state.poiIPs.poiThreeIP;
-        }
-        if (poiFourIpInput) {
-            poiFourIpInput.value = state.poiIPs.poiFourIP;
-            poiFourIpInput.placeholder = state.poiIPs.poiFourIP;
-        }
-        if (poiFiveIpInput) {
-            poiFiveIpInput.value = state.poiIPs.poiFiveIP;
-            poiFiveIpInput.placeholder = state.poiIPs.poiFiveIP;
-        }
-        if (poiSixIpInput) {
-            poiSixIpInput.value = state.poiIPs.poiSixIP;
-            poiSixIpInput.placeholder = state.poiIPs.poiSixIP;
-        }
-        if (poiSevenIpInput) {
-            poiSevenIpInput.value = state.poiIPs.poiSevenIP;
-            poiSevenIpInput.placeholder = state.poiIPs.poiSevenIP;
-        }
-        if (poiEightIpInput) {
-            poiEightIpInput.value = state.poiIPs.poiEightIP;
-            poiEightIpInput.placeholder = state.poiIPs.poiEightIP;
-        }
-
-        saveState();
-        updateNetworkModeDisplay();
-        createMessage(`Switched to ${routerMode ? 'Router' : 'AP'} mode`);
-        updateStatusIndicators();
-    } catch (error) {
-        console.error('Error updating router mode:', error);
-        createMessage('Mode change failed - check POI connections', 'error');
-    }
-}
+// Danger Zone Functions (delegated to controls.js)
 
 // Initialize App
 function init() {
@@ -879,12 +786,20 @@ function init() {
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    const savedIPs = JSON.parse(localStorage.getItem('poiIPs') || '{}');
+    // Load saved state to pre-initialize critical values before init()
+    let savedState = {};
+    try {
+        const savedString = localStorage.getItem('poiState');
+        if (savedString) savedState = JSON.parse(savedString);
+    } catch(e) {
+        console.warn('Failed to parse saved state in DOMContentLoaded:', e);
+    }
 
-    if (savedIPs.routerMode) {
+    if (savedState.poiIPs?.routerMode) {
         document.getElementById('routerModeCheckbox').checked = true;
-        state.poiIPs.mainIP = savedIPs.mainIP || "192.168.1.1";
-        state.poiIPs.auxIP = savedIPs.auxIP || "192.168.1.78";
+        state.poiIPs.mainIP = savedState.poiIPs.mainIP || "192.168.1.1";
+        state.poiIPs.auxIP = savedState.poiIPs.auxIP || "192.168.1.78";
+        state.poiIPs.routerMode = true;
     }
 
     init();

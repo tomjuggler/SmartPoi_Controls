@@ -498,14 +498,14 @@ async function submitRouterMode() {
     const routerMode = document.getElementById('routerModeCheckbox').checked;
     
     try {
-        // Update all POIs first
-        await Promise.all(getPoiIPs().map(ip =>
-            fetch(`http://${ip}/router?router=${routerMode ? 1 : 0}`)
-        ));
-
-        // Update local state
+        // Update local state FIRST so UI updates even if POIs are unreachable
         state.poiIPs.routerMode = routerMode;
-        
+
+
+        // Attempt to notify POIs (non-blocking - UI updates regardless)
+        getPoiIPs().forEach(ip => {
+            fetch(`http://${ip}/router?router=${routerMode ? 1 : 0}`).catch(() => {});
+        });
         const mainIpInput = document.getElementById('manualMainIp');
         const auxIpInput = document.getElementById('manualAuxIp');
         const poiThreeIpInput = document.getElementById('manualPoiThreeIp');
@@ -521,6 +521,10 @@ async function submitRouterMode() {
             state.poiIPs.auxIP = state.poiIPs.savedRouterIPs.aux || "192.168.1.78";
             state.poiIPs.poiThreeIP = state.poiIPs.savedRouterIPs.three || "0.0.0.0";
             state.poiIPs.poiFourIP = state.poiIPs.savedRouterIPs.four || "0.0.0.0";
+            state.poiIPs.poiFiveIP = state.poiIPs.savedRouterIPs.five || "0.0.0.0";
+            state.poiIPs.poiSixIP = state.poiIPs.savedRouterIPs.six || "0.0.0.0";
+            state.poiIPs.poiSevenIP = state.poiIPs.savedRouterIPs.seven || "0.0.0.0";
+            state.poiIPs.poiEightIP = state.poiIPs.savedRouterIPs.eight || "0.0.0.0";
         } else {
             // Save current IPs before switching to AP mode
             state.poiIPs.savedRouterIPs = {

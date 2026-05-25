@@ -132,7 +132,17 @@ window.decompressAndDisplay = async function(ip, fileName) {
         imgElement.style.height = '100%';
 
         // Find and replace existing image
-        const containerId = ip === state.poiIPs.mainIP ? 'mainImageGrid' : 'auxImageGrid';
+        // Map IP to the correct image grid container
+        let containerId;
+        if (ip === state.poiIPs.mainIP) containerId = 'mainImageGrid';
+        else if (ip === state.poiIPs.auxIP) containerId = 'auxImageGrid';
+        else if (ip === state.poiIPs.poiThreeIP) containerId = 'threeImageGrid';
+        else if (ip === state.poiIPs.poiFourIP) containerId = 'fourImageGrid';
+        else if (ip === state.poiIPs.poiFiveIP) containerId = 'fiveImageGrid';
+        else if (ip === state.poiIPs.poiSixIP) containerId = 'sixImageGrid';
+        else if (ip === state.poiIPs.poiSevenIP) containerId = 'sevenImageGrid';
+        else if (ip === state.poiIPs.poiEightIP) containerId = 'eightImageGrid';
+        else containerId = 'auxImageGrid';
         const container = document.getElementById(containerId);
         const existingImages = container.getElementsByClassName('poi-image');
         
