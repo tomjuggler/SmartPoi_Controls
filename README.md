@@ -64,6 +64,8 @@ cordova run electron
 
 - 🏪 **Play Store (stable)** — [SmartPoi Controls on Google Play](https://play.google.com/store/apps/details?id=com.circusscientist.smartpoicontrols)
 - 🌐 **Website** — [circusscientist.com](https://circusscientist.com)
+- 🔌 **SmartPoi Firmware (ESP32)** — [github.com/tomjuggler/SmartPoi_ESP32](https://github.com/tomjuggler/SmartPoi_ESP32)
+- 🔌 **SmartPoi Firmware (ESP8266)** — [github.com/tomjuggler/SmartPoi-Firmware](https://github.com/tomjuggler/SmartPoi-Firmware)
 - ❤️ **Patreon** — [Support development](https://patreon.com/c/circusscientist)
 
 ---
