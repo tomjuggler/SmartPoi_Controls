@@ -1098,3 +1098,9 @@ input[type="range"] {
 .menu-item:last-child {
     border-bottom: none;
 }
+
+
+/* Router-only elements - hidden by default, shown via JS when router mode is active */
+.router-only {
+    display: none;
+}
