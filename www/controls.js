@@ -5,15 +5,19 @@ window.controls = window.controls || {};
 
 // Pattern Handling
 window.controlsSubmitPattern = async function(pattern) {
+  // Save to state immediately so it persists even without POI connection
+  state.settings.pattern = pattern;
+  saveState();
+  highlightActiveButton(pattern);
+  createMessage(`Pattern ${pattern} activated`);
+  
+  // Attempt to notify POIs (non-blocking - state already saved)
   try {
-    await Promise.all(getPoiIPs().map(ip => 
-      fetch(`http://${ip}/pattern?patternChooserChange=${pattern}`)
-    ));
-    highlightActiveButton(pattern);
-    createMessage(`Pattern ${pattern} activated`);
+    getPoiIPs().forEach(ip => {
+      fetch(`http://${ip}/pattern?patternChooserChange=${pattern}`).catch(() => {});
+    });
   } catch (error) {
-    console.error('Pattern change failed:', error);
-    createMessage('Pattern sync failed', 'error');
+    // Non-blocking - state is already saved
   }
 }
 
@@ -591,12 +595,16 @@ async function submitRouterMode() {
 function submitChannel() {
     const channelInput = document.getElementById('channelInput');
     const channelValue = parseInt(channelInput.value);
-    
+
     if (isNaN(channelValue) || channelValue < 1 || channelValue > 13) {
         alert("Invalid channel! WiFi channels must be between 1-13");
-        channelInput.value = ""; // Clear invalid input
+        channelInput.value = "";
         return;
     }
+
+    // Save to state immediately
+    state.settings.channel = channelValue;
+    saveState();
 
     // Handle each request independently - send to all connected POIs
     getPoiIPs().forEach(ip => {

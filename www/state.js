@@ -191,7 +191,25 @@ function loadState() {
     
     state.poiIPs = { ...state.poiIPs, ...saved.poiIPs };
     state.settings = { ...state.settings, ...saved.settings };
+
+    // Update Main POI display elements from saved state
+    const routerEl = document.getElementById('router');
+    const channelEl = document.getElementById('channel');
+    const patternEl = document.getElementById('pattern');
+    if (routerEl) routerEl.textContent = state.settings.router || 'N/A';
+    if (channelEl) channelEl.textContent = state.settings.channel || 'N/A';
+    if (patternEl) patternEl.textContent = state.settings.pattern || 'N/A';
+    if (state.settings.pixels) updatePixelDisplayForPoi('main', state.settings.pixels);
     
+    // Update Aux POI display elements
+    const routerTwoEl = document.getElementById('routerTwo');
+    const channelTwoEl = document.getElementById('channelTwo');
+    const patternTwoEl = document.getElementById('patternTwo');
+    if (routerTwoEl) routerTwoEl.textContent = state.settings.routerTwo || 'N/A';
+    if (channelTwoEl) channelTwoEl.textContent = state.settings.channelTwo || 'N/A';
+    if (patternTwoEl) patternTwoEl.textContent = state.settings.patternTwo || 'N/A';
+    if (state.settings.pixelsTwo) updatePixelDisplayForPoi('aux', state.settings.pixelsTwo);
+
     // Load credentials from saved state
     const routerInput = document.getElementById('routerInput');
     const passwordInput = document.getElementById('passwordInput');
