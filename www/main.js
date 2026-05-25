@@ -863,8 +863,16 @@ function init() {
     initializeEventListeners();
     initializeSliders();
     initializeStatusCheck();
-    fetchInitialPixels();
-    refreshAllImages();
+    try {
+        fetchInitialPixels();
+    } catch(e) {
+        console.warn('fetchInitialPixels failed:', e);
+    }
+    try {
+        refreshAllImages();
+    } catch(e) {
+        console.warn('refreshAllImages failed:', e);
+    }
     initializeFetchButton();
     initializeCustomCompressionModal();
 }

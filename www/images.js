@@ -591,18 +591,17 @@ async function getFilesAndDisplay() {
   console.log('getFilesAndDisplay called');
   await getFilesOne();
   await getFilesTwo();
+  
+  // Also fetch POI 3-8 if in router mode
+  if (state.poiIPs.routerMode) {
+      if (state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0') await getFilesThree();
+      if (state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') await getFilesFour();
+      if (state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0') await getFilesFive();
+      if (state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0') await getFilesSix();
+      if (state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0') await getFilesSeven();
+      if (state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0') await getFilesEight();
+  }
 }
-
-    // Also fetch POI 3-8 if in router mode
-    if (state.poiIPs.routerMode) {
-        if (state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0') await getFilesThree();
-        if (state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') await getFilesFour();
-        if (state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0') await getFilesFive();
-        if (state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0') await getFilesSix();
-        if (state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0') await getFilesSeven();
-        if (state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0') await getFilesEight();
-    }
-
 async function getFilesOne() {
   const indicator = document.getElementById('get-files-one-indicator');
   try {
