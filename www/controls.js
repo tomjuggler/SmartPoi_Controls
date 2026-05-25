@@ -383,6 +383,10 @@ async function submitRouterMode() {
         const auxIpInput = document.getElementById('manualAuxIp');
         const poiThreeIpInput = document.getElementById('manualPoiThreeIp');
         const poiFourIpInput = document.getElementById('manualPoiFourIp');
+        const poiFiveIpInput = document.getElementById('manualPoiFiveIp');
+        const poiSixIpInput = document.getElementById('manualPoiSixIp');
+        const poiSevenIpInput = document.getElementById('manualPoiSevenIp');
+        const poiEightIpInput = document.getElementById('manualPoiEightIp');
         
         if (routerMode) {
             // Restore saved router mode IPs
@@ -396,13 +400,21 @@ async function submitRouterMode() {
                 main: state.poiIPs.mainIP,
                 aux: state.poiIPs.auxIP,
                 three: state.poiIPs.poiThreeIP,
-                four: state.poiIPs.poiFourIP
+                four: state.poiIPs.poiFourIP,
+                five: state.poiIPs.poiFiveIP,
+                six: state.poiIPs.poiSixIP,
+                seven: state.poiIPs.poiSevenIP,
+                eight: state.poiIPs.poiEightIP
             };
             // Set hardcoded AP mode IPs
             state.poiIPs.mainIP = "192.168.1.1";
             state.poiIPs.auxIP = "192.168.1.78";
             state.poiIPs.poiThreeIP = "0.0.0.0";
             state.poiIPs.poiFourIP = "0.0.0.0";
+            state.poiIPs.poiFiveIP = "0.0.0.0";
+            state.poiIPs.poiSixIP = "0.0.0.0";
+            state.poiIPs.poiSevenIP = "0.0.0.0";
+            state.poiIPs.poiEightIP = "0.0.0.0";
         }
 
         // Update inputs and placeholders
@@ -417,6 +429,22 @@ async function submitRouterMode() {
         if (poiFourIpInput) {
             poiFourIpInput.value = state.poiIPs.poiFourIP;
             poiFourIpInput.placeholder = state.poiIPs.poiFourIP;
+        }
+        if (poiFiveIpInput) {
+            poiFiveIpInput.value = state.poiIPs.poiFiveIP;
+            poiFiveIpInput.placeholder = state.poiIPs.poiFiveIP;
+        }
+        if (poiSixIpInput) {
+            poiSixIpInput.value = state.poiIPs.poiSixIP;
+            poiSixIpInput.placeholder = state.poiIPs.poiSixIP;
+        }
+        if (poiSevenIpInput) {
+            poiSevenIpInput.value = state.poiIPs.poiSevenIP;
+            poiSevenIpInput.placeholder = state.poiIPs.poiSevenIP;
+        }
+        if (poiEightIpInput) {
+            poiEightIpInput.value = state.poiIPs.poiEightIP;
+            poiEightIpInput.placeholder = state.poiIPs.poiEightIP;
         }
 
         saveState();
