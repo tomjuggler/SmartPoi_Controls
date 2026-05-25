@@ -119,7 +119,7 @@ function updateNetworkModeDisplay() {
     // Show/hide router-only elements based on mode
     const routerOnlyElements = document.querySelectorAll('.router-only');
     routerOnlyElements.forEach(el => {
-        el.style.display = state.poiIPs.routerMode ? '' : 'none';
+        el.style.display = state.poiIPs.routerMode ? 'block' : 'none';
     });
 }
 
