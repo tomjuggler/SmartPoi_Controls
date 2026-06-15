@@ -314,6 +314,19 @@ const TimelinePlayer = (function() {
             audioEl.play().catch(e => console.log('Audio play failed:', e));
         }
 
+        // Send the current frame to POIs immediately when playback starts
+        if (_state.currentIndex >= 0) {
+            sendPatternToPOIs(_state.currentIndex);
+        } else {
+            // First frame - send immediately
+            const startIndex = findIndexForTime(_state.currentTime);
+            if (startIndex >= 0) {
+                _state.currentIndex = startIndex;
+                sendPatternToPOIs(startIndex);
+                highlightCurrentFrame(startIndex);
+            }
+        }
+        
         _state.startTime = performance.now() - _state.currentTime;
         _state.animationFrameId = requestAnimationFrame(updatePlayback);
 
@@ -470,7 +483,7 @@ const TimelinePlayer = (function() {
      * Uses the established /pattern?patternChooserChange=${index} endpoint
      */
     function sendPatternToPOIs(index) {
-        const pattern = index; // Use image index as pattern number
+        const pattern = index + 7; // Pattern 7 = a.bin (index 0), pattern 8 = b.bin (index 1), etc.
         
         // Get all connected POI IPs
         const ips = getConnectedPoiIPs();
