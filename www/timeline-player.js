@@ -513,28 +513,25 @@ const TimelinePlayer = (function() {
         let successCount = 0;
         const totalIps = ips.length;
         
-        // Send sequentially to avoid overwhelming the POIs
-        ips.forEach((ip, idx) => {
-            setTimeout(() => {
-                const url = `http://${ip}/pattern?patternChooserChange=${pattern}`;
-                console.log(`[TimelinePlayer] → GET ${url}`);
-                
-                fetch(url, {
+        // Send simultaneously to all POIs for sync
+        Promise.all(ips.map(async (ip) => {
+            const url = `http://${ip}/pattern?patternChooserChange=${pattern}`;
+            console.log(`[TimelinePlayer] → GET ${url}`);
+            
+            try {
+                const response = await fetch(url, {
                     method: 'GET',
                     signal: AbortSignal.timeout(5000) // 5 second timeout
-                })
-                .then(response => {
-                    console.log(`[TimelinePlayer] ✓ ${ip} responded: ${response.status}`);
-                    successCount++;
-                    if (successCount === totalIps) {
-                        updatePoiStatus('online', `${totalIps} POI(s) synced (pattern ${pattern})`);
-                    }
-                })
-                .catch(err => {
-                    console.log(`[TimelinePlayer] ✗ ${ip} failed:`, err.message);
                 });
-            }, idx * 200); // 200ms delay between each POI
-        });
+                console.log(`[TimelinePlayer] ✓ ${ip} responded: ${response.status}`);
+                successCount++;
+                if (successCount === totalIps) {
+                    updatePoiStatus('online', `${totalIps} POI(s) synced (pattern ${pattern})`);
+                }
+            } catch (err) {
+                console.log(`[TimelinePlayer] ✗ ${ip} failed:`, err.message);
+            }
+        }));
         
         updatePoiStatus('online', `Sending pattern ${pattern} to ${totalIps} POI(s)...`);
     }
