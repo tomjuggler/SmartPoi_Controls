@@ -503,28 +503,40 @@ const TimelinePlayer = (function() {
         const ips = getConnectedPoiIPs();
         
         if (ips.length === 0) {
+            console.log('[TimelinePlayer] No POIs connected, skipping pattern send');
             updatePoiStatus('offline', 'No POIs connected');
             return;
         }
-
+        
+        console.log(`[TimelinePlayer] Sending pattern ${pattern} (image index ${index}) to ${ips.length} POI(s):`, ips);
+        
         let successCount = 0;
-        ips.forEach(ip => {
-            fetch(`http://${ip}/pattern?patternChooserChange=${pattern}`, {
-                method: 'GET',
-                signal: AbortSignal.timeout(1000)
-            })
-            .then(() => {
-                successCount++;
-                if (successCount === ips.length) {
-                    updatePoiStatus('online', `${ips.length} POI(s) synced`);
-                }
-            })
-            .catch(err => {
-                console.log(`Pattern send to ${ip} failed:`, err.message);
-            });
+        const totalIps = ips.length;
+        
+        // Send sequentially to avoid overwhelming the POIs
+        ips.forEach((ip, idx) => {
+            setTimeout(() => {
+                const url = `http://${ip}/pattern?patternChooserChange=${pattern}`;
+                console.log(`[TimelinePlayer] → GET ${url}`);
+                
+                fetch(url, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(5000) // 5 second timeout
+                })
+                .then(response => {
+                    console.log(`[TimelinePlayer] ✓ ${ip} responded: ${response.status}`);
+                    successCount++;
+                    if (successCount === totalIps) {
+                        updatePoiStatus('online', `${totalIps} POI(s) synced (pattern ${pattern})`);
+                    }
+                })
+                .catch(err => {
+                    console.log(`[TimelinePlayer] ✗ ${ip} failed:`, err.message);
+                });
+            }, idx * 200); // 200ms delay between each POI
         });
-
-        updatePoiStatus('online', `Sending image ${index} to ${ips.length} POI(s)`);
+        
+        updatePoiStatus('online', `Sending pattern ${pattern} to ${totalIps} POI(s)...`);
     }
 
     /**
