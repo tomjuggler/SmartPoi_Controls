@@ -483,7 +483,7 @@ const TimelinePlayer = (function() {
      * Uses the established /pattern?patternChooserChange=${index} endpoint
      */
     function sendPatternToPOIs(index) {
-        const pattern = index + 7; // Pattern 7 = a.bin (index 0), pattern 8 = b.bin (index 1), etc.
+        const pattern = index + 8; // Pattern 8 = a.bin (index 0), 9 = b.bin (index 1), etc. Matches Image Management
         
         // Get all connected POI IPs
         const ips = getConnectedPoiIPs();

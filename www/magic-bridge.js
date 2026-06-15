@@ -83,6 +83,7 @@ async function processAndUploadZip() {
     statusEl.textContent = 'Processing ZIP file...';
     statusEl.style.color = 'inherit';
     let uploadSuccess = false;
+    let timelineReady = false; // Flag to track if timeline data is extracted (before upload)
     try {
         // Read and process ZIP file
         const zip = await JSZip.loadAsync(fileInput.files[0]);
@@ -183,6 +184,16 @@ async function processAndUploadZip() {
             console.warn('No audio file found in ZIP or failed to extract');
         }
 
+        // Initialize TimelinePlayer immediately after data extraction (before upload)
+        if (timelineData && typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
+            try {
+                TimelinePlayer.setAudioUrl(mp3BlobUrl);
+                TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
+                timelineReady = true;
+            } catch (tlErr) {
+                console.error('Failed to initialize TimelinePlayer:', tlErr);
+            }
+        }
         if (files.length === 0) {
             throw new Error('No .bin files found in ZIP archive');
         }
@@ -308,14 +319,17 @@ async function processAndUploadZip() {
         statusEl.textContent = 'Upload completed successfully!';
         statusEl.style.color = 'green';
         uploadSuccess = true;
-        
+        // Re-initialize TimelinePlayer after upload (now with upload complete status)
         // Initialize TimelinePlayer with the processed data
         if (timelineData && typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
             try {
-                TimelinePlayer.setAudioUrl(mp3BlobUrl);
-                TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
+                // Only update if not already initialized (avoids re-decompressing)
+                if (!timelineReady) {
+                    TimelinePlayer.setAudioUrl(mp3BlobUrl);
+                    TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
+                }
             } catch (tlErr) {
-                console.error('Failed to initialize TimelinePlayer:', tlErr);
+                console.error('Failed to re-initialize TimelinePlayer:', tlErr);
             }
         }
     } catch (error) {
