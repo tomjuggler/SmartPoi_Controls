@@ -59,6 +59,12 @@ async function fastScanNetwork(subnet) {
         return {
             mainIP: foundDevices[0] || state.poiIPs.mainIP,
             auxIP: foundDevices[1] || state.poiIPs.auxIP,
+            poiThreeIP: foundDevices[2] || "0.0.0.0",
+            poiFourIP: foundDevices[3] || "0.0.0.0",
+            poiFiveIP: foundDevices[4] || "0.0.0.0",
+            poiSixIP: foundDevices[5] || "0.0.0.0",
+            poiSevenIP: foundDevices[6] || "0.0.0.0",
+            poiEightIP: foundDevices[7] || "0.0.0.0",
             foundDevices
         };
     } finally {
@@ -83,25 +89,44 @@ function initializeNetworkDiscovery() {
         showLoadingState(true);
         
         try {
-            const { mainIP, auxIP, foundDevices } = await fastScanNetwork(subnet);
+            const { mainIP, auxIP, poiThreeIP, poiFourIP, poiFiveIP, poiSixIP, poiSevenIP, poiEightIP, foundDevices } = await fastScanNetwork(subnet);
             
             if (foundDevices.length === 0) {
                 // No devices found: reset to defaults
                 state.poiIPs.mainIP = "192.168.1.1";
                 state.poiIPs.auxIP = "192.168.1.78";
+                state.poiIPs.poiThreeIP = "0.0.0.0";
+                state.poiIPs.poiFourIP = "0.0.0.0";
+                state.poiIPs.poiFiveIP = "0.0.0.0";
+                state.poiIPs.poiSixIP = "0.0.0.0";
+                state.poiIPs.poiSevenIP = "0.0.0.0";
+                state.poiIPs.poiEightIP = "0.0.0.0";
             } else {
                 // Use the IPs from the scan
                 state.poiIPs.mainIP = mainIP;
                 state.poiIPs.auxIP = auxIP;
+                state.poiIPs.poiThreeIP = poiThreeIP;
+                state.poiIPs.poiFourIP = poiFourIP;
+                state.poiIPs.poiFiveIP = poiFiveIP;
+                state.poiIPs.poiSixIP = poiSixIP;
+                state.poiIPs.poiSevenIP = poiSevenIP;
+                state.poiIPs.poiEightIP = poiEightIP;
             }
             
             state.poiIPs.routerMode = true;
             saveState();
             updateStatusIndicators();
+            updateNetworkModeDisplay();  // Show/hide router-only elements (POI 3-8 inputs)
 
             // Update UI inputs
             document.getElementById('manualMainIp').value = state.poiIPs.mainIP;
             document.getElementById('manualAuxIp').value = state.poiIPs.auxIP;
+            document.getElementById('manualPoiThreeIp').value = state.poiIPs.poiThreeIP;
+            document.getElementById('manualPoiFourIp').value = state.poiIPs.poiFourIP;
+            document.getElementById('manualPoiFiveIp').value = state.poiIPs.poiFiveIP;
+            document.getElementById('manualPoiSixIp').value = state.poiIPs.poiSixIP;
+            document.getElementById('manualPoiSevenIp').value = state.poiIPs.poiSevenIP;
+            document.getElementById('manualPoiEightIp').value = state.poiIPs.poiEightIP;
         
             if (foundDevices.length > 0) {
                 createMessage(`Discovered ${foundDevices.length} POI(s): ${foundDevices.join(', ')}`);
@@ -162,31 +187,105 @@ function checkStatus(ip) {
 }
 
 function updateStatusIndicators() {
-    // Set initial state to checking
     const mainElement = document.getElementById('mainStatus');
     const auxElement = document.getElementById('auxStatus');
+    const poiThreeElement = document.getElementById('poiThreeStatus');
+    const poiFourElement = document.getElementById('poiFourStatus');
+    const poiFiveElement = document.getElementById('poiFiveStatus');
+    const poiSixElement = document.getElementById('poiSixStatus');
+    const poiSevenElement = document.getElementById('poiSevenStatus');
+    const poiEightElement = document.getElementById('poiEightStatus');
     
-    if (!mainElement.classList.contains('online') && 
-        !mainElement.classList.contains('offline')) {
-        mainElement.className = 'status-indicator';
-        mainElement.textContent = 'Main POI: Checking...';
-        auxElement.className = 'status-indicator';
-        auxElement.textContent = 'Aux POI: Checking...';
-    }
-
+    const isRouterMode = state.poiIPs.routerMode;
+    const hasPoiThree = isRouterMode && state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0';
+    const hasPoiFour = isRouterMode && state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0';
+    const hasPoiFive = isRouterMode && state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0';
+    const hasPoiSix = isRouterMode && state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0';
+    const hasPoiSeven = isRouterMode && state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0';
+    const hasPoiEight = isRouterMode && state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0';
+    
     // Actual status check
-    Promise.allSettled([
+    const checkPromises = [
         checkStatus(state.poiIPs.mainIP),
         checkStatus(state.poiIPs.auxIP)
-    ]).then(([mainResult, auxResult]) => {
+    ];
+    
+    if (hasPoiThree) {
+        checkPromises.push(checkStatus(state.poiIPs.poiThreeIP));
+    } else {
+        checkPromises.push(Promise.resolve('offline'));
+    }
+    if (hasPoiFour) {
+        checkPromises.push(checkStatus(state.poiIPs.poiFourIP));
+    } else {
+        checkPromises.push(Promise.resolve('offline'));
+    }
+    if (hasPoiFive) {
+        checkPromises.push(checkStatus(state.poiIPs.poiFiveIP));
+    } else {
+        checkPromises.push(Promise.resolve('offline'));
+    }
+    if (hasPoiSix) {
+        checkPromises.push(checkStatus(state.poiIPs.poiSixIP));
+    } else {
+        checkPromises.push(Promise.resolve('offline'));
+    }
+    if (hasPoiSeven) {
+        checkPromises.push(checkStatus(state.poiIPs.poiSevenIP));
+    } else {
+        checkPromises.push(Promise.resolve('offline'));
+    }
+    if (hasPoiEight) {
+        checkPromises.push(checkStatus(state.poiIPs.poiEightIP));
+    } else {
+        checkPromises.push(Promise.resolve('offline'));
+    }
+    
+    Promise.allSettled(checkPromises).then(([mainResult, auxResult, threeResult, fourResult, fiveResult, sixResult, sevenResult, eightResult]) => {
         const mainStatus = mainResult.status === 'fulfilled' ? mainResult.value : 'offline';
         const auxStatus = auxResult.status === 'fulfilled' ? auxResult.value : 'offline';
-
+        const threeStatus = threeResult.status === 'fulfilled' ? threeResult.value : 'offline';
+        const fourStatus = fourResult.status === 'fulfilled' ? fourResult.value : 'offline';
+        const fiveStatus = fiveResult.status === 'fulfilled' ? fiveResult.value : 'offline';
+        const sixStatus = sixResult.status === 'fulfilled' ? sixResult.value : 'offline';
+        const sevenStatus = sevenResult.status === 'fulfilled' ? sevenResult.value : 'offline';
+        const eightStatus = eightResult.status === 'fulfilled' ? eightResult.value : 'offline';
+        
         mainElement.className = `status-indicator ${mainStatus}`;
         mainElement.textContent = `Main POI: ${mainStatus === 'online' ? 'Online' : 'Offline'}`;
         
         auxElement.className = `status-indicator ${auxStatus}`;
         auxElement.textContent = `Aux POI: ${auxStatus === 'online' ? 'Online' : 'Offline'}`;
+        
+        if (poiThreeElement) {
+            poiThreeElement.className = `status-indicator ${threeStatus}`;
+            poiThreeElement.textContent = `POI 3: ${threeStatus === 'online' ? 'Online' : 'Offline'}`;
+        }
+        
+        if (poiFourElement) {
+            poiFourElement.className = `status-indicator ${fourStatus}`;
+            poiFourElement.textContent = `POI 4: ${fourStatus === 'online' ? 'Online' : 'Offline'}`;
+        }
+        
+        if (poiFiveElement) {
+            poiFiveElement.className = `status-indicator ${fiveStatus}`;
+            poiFiveElement.textContent = `POI 5: ${fiveStatus === 'online' ? 'Online' : 'Offline'}`;
+        }
+        
+        if (poiSixElement) {
+            poiSixElement.className = `status-indicator ${sixStatus}`;
+            poiSixElement.textContent = `POI 6: ${sixStatus === 'online' ? 'Online' : 'Offline'}`;
+        }
+        
+        if (poiSevenElement) {
+            poiSevenElement.className = `status-indicator ${sevenStatus}`;
+            poiSevenElement.textContent = `POI 7: ${sevenStatus === 'online' ? 'Online' : 'Offline'}`;
+        }
+        
+        if (poiEightElement) {
+            poiEightElement.className = `status-indicator ${eightStatus}`;
+            poiEightElement.textContent = `POI 8: ${eightStatus === 'online' ? 'Online' : 'Offline'}`;
+        }
     });
 }
 
@@ -222,3 +321,99 @@ window.networkSetAuxIp = function() {
         showError('auxIpError', 'Invalid IP format');
     }
 }
+
+window.networkSetPoiThreeIp = function() {
+    if (!state.poiIPs.routerMode) {
+        createMessage('Enable Router Mode first!', 'warning');
+        return;
+    }
+    const ip = document.getElementById('manualPoiThreeIp').value;
+    if (validateIP(ip)) {
+        state.poiIPs.poiThreeIP = ip;
+        saveState();
+        createMessage(`POI 3 IP set to ${ip}`);
+        updateStatusIndicators();
+    } else {
+        showError('poiThreeIpError', 'Invalid IP format');
+    }
+};
+
+window.networkSetPoiFourIp = function() {
+    if (!state.poiIPs.routerMode) {
+        createMessage('Enable Router Mode first!', 'warning');
+        return;
+    }
+    const ip = document.getElementById('manualPoiFourIp').value;
+    if (validateIP(ip)) {
+        state.poiIPs.poiFourIP = ip;
+        saveState();
+        createMessage(`POI 4 IP set to ${ip}`);
+        updateStatusIndicators();
+    } else {
+        showError('poiFourIpError', 'Invalid IP format');
+    }
+};
+
+window.networkSetPoiFiveIp = function() {
+    if (!state.poiIPs.routerMode) {
+        createMessage('Enable Router Mode first!', 'warning');
+        return;
+    }
+    const ip = document.getElementById('manualPoiFiveIp').value;
+    if (validateIP(ip)) {
+        state.poiIPs.poiFiveIP = ip;
+        saveState();
+        createMessage(`POI 5 IP set to ${ip}`);
+        updateStatusIndicators();
+    } else {
+        showError('poiFiveIpError', 'Invalid IP format');
+    }
+};
+
+window.networkSetPoiSixIp = function() {
+    if (!state.poiIPs.routerMode) {
+        createMessage('Enable Router Mode first!', 'warning');
+        return;
+    }
+    const ip = document.getElementById('manualPoiSixIp').value;
+    if (validateIP(ip)) {
+        state.poiIPs.poiSixIP = ip;
+        saveState();
+        createMessage(`POI 6 IP set to ${ip}`);
+        updateStatusIndicators();
+    } else {
+        showError('poiSixIpError', 'Invalid IP format');
+    }
+};
+
+window.networkSetPoiSevenIp = function() {
+    if (!state.poiIPs.routerMode) {
+        createMessage('Enable Router Mode first!', 'warning');
+        return;
+    }
+    const ip = document.getElementById('manualPoiSevenIp').value;
+    if (validateIP(ip)) {
+        state.poiIPs.poiSevenIP = ip;
+        saveState();
+        createMessage(`POI 7 IP set to ${ip}`);
+        updateStatusIndicators();
+    } else {
+        showError('poiSevenIpError', 'Invalid IP format');
+    }
+};
+
+window.networkSetPoiEightIp = function() {
+    if (!state.poiIPs.routerMode) {
+        createMessage('Enable Router Mode first!', 'warning');
+        return;
+    }
+    const ip = document.getElementById('manualPoiEightIp').value;
+    if (validateIP(ip)) {
+        state.poiIPs.poiEightIP = ip;
+        saveState();
+        createMessage(`POI 8 IP set to ${ip}`);
+        updateStatusIndicators();
+    } else {
+        showError('poiEightIpError', 'Invalid IP format');
+    }
+};

@@ -20,10 +20,16 @@ async function verifyPoiConnection(ip) {
   return false;
 }
 
-async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true) {
+async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true, threeAvailable = false, fourAvailable = false, fiveAvailable = false, sixAvailable = false, sevenAvailable = false, eightAvailable = false) {
   const restoreTasks = [];
   if(mainAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.mainIP));
   if(auxAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.auxIP));
+  if(threeAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiThreeIP));
+  if(fourAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiFourIP));
+  if(fiveAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiFiveIP));
+  if(sixAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiSixIP));
+  if(sevenAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiSevenIP));
+  if(eightAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiEightIP));
   
   await Promise.allSettled(restoreTasks);
   await delay(1000); // Final safety delay
@@ -64,19 +70,23 @@ async function handleUpload() {
         return;
     }
 
-    // ZIP files are now extracted immediately when selected, so we can proceed directly with upload
-
     try {
         createMessage('Starting upload process...', 'info');
         
         // Verify POI connections
-        const [mainAvailable, auxAvailable] = await Promise.all([
+        const [mainAvailable, auxAvailable, threeAvailable, fourAvailable, fiveAvailable, sixAvailable, sevenAvailable, eightAvailable] = await Promise.all([
             verifyPoiConnection(state.poiIPs.mainIP),
-            verifyPoiConnection(state.poiIPs.auxIP)
+            verifyPoiConnection(state.poiIPs.auxIP),
+            verifyPoiConnection(state.poiIPs.poiThreeIP),
+            verifyPoiConnection(state.poiIPs.poiFourIP),
+            verifyPoiConnection(state.poiIPs.poiFiveIP),
+            verifyPoiConnection(state.poiIPs.poiSixIP),
+            verifyPoiConnection(state.poiIPs.poiSevenIP),
+            verifyPoiConnection(state.poiIPs.poiEightIP)
         ]);
 
-        if (!mainAvailable && !auxAvailable) {
-            throw new Error("Both POIs are unavailable - upload cannot proceed");
+        if (!mainAvailable && !auxAvailable && !threeAvailable && !fourAvailable && !fiveAvailable && !sixAvailable && !sevenAvailable && !eightAvailable) {
+            throw new Error("No POIs are available - upload cannot proceed");
         }
 
         // Store original patterns
@@ -86,35 +96,78 @@ async function handleUpload() {
         const patternTasks = [];
         if (mainAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.mainIP));
         if (auxAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.auxIP));
+        if (threeAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiThreeIP));
+        if (fourAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiFourIP));
+        if (fiveAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiFiveIP));
+        if (sixAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiSixIP));
+        if (sevenAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiSevenIP));
+        if (eightAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.poiEightIP));
         await Promise.all(patternTasks);
         await delay(state.upload.config.INTER_POI_DELAY);
 
-        // Process files with new naming convention
-        const uploadTasks = [];
+        // Prepare files list with new naming convention
         const filesToUpload = state.upload.orderedFiles.map((file, index) => ({
             file,
             targetName: generateUploadBinFilename(index)
         }));
 
-        if (mainAvailable) {
+        // Define POI pairs: [ip1, ip2, label1, label2, avail1, avail2]
+        const pairs = [
+            [state.poiIPs.mainIP, state.poiIPs.auxIP, "Main POI", "Aux POI", mainAvailable, auxAvailable],
+            [state.poiIPs.poiThreeIP, state.poiIPs.poiFourIP, "POI 3", "POI 4", threeAvailable, fourAvailable],
+            [state.poiIPs.poiFiveIP, state.poiIPs.poiSixIP, "POI 5", "POI 6", fiveAvailable, sixAvailable],
+            [state.poiIPs.poiSevenIP, state.poiIPs.poiEightIP, "POI 7", "POI 8", sevenAvailable, eightAvailable]
+        ];
+
+        const uploadTasks = [];
+
+        for (const [ip1, ip2, label1, label2, avail1, avail2] of pairs) {
+            if (!avail1 && !avail2) continue;
+
+            // Determine the IP to fetch pixel count from (prefer the first available)
+            const pixelSourceIp = avail1 ? ip1 : ip2;
+
+            // Fetch pixel count for this POI pair
+            let pairPixelCount;
+            try {
+                const response = await fetch(`http://${pixelSourceIp}/get-pixels`);
+                if (response.ok) {
+                    pairPixelCount = parseInt(await response.text(), 10);
+                } else {
+                    pairPixelCount = state.settings.pixels;
+                }
+            } catch (error) {
+                pairPixelCount = state.settings.pixels;
+            }
+
+            // Build target IPs array and label
+            const targetIps = [];
+            const pairLabelParts = [];
+            if (avail1) { targetIps.push(ip1); pairLabelParts.push(label1); }
+            if (avail2) { targetIps.push(ip2); pairLabelParts.push(label2); }
+            const pairLabel = pairLabelParts.join(' & ');
+
             uploadTasks.push(
-                processPoiWithBackoff(filesToUpload, state.poiIPs.mainIP, "Main POI")
-                    .then(() => createMessage("Main POI upload complete"))
-            );
-        }
-        if (auxAvailable) {
-            uploadTasks.push(
-                processPoiWithBackoff(filesToUpload, state.poiIPs.auxIP, "Aux POI")
-                    .then(() => createMessage("Aux POI upload complete"))
+                processPairWithBackoff(filesToUpload, targetIps, pairPixelCount, pairLabel)
+                    .then(() => createMessage(`${pairLabel}: upload complete`))
             );
         }
 
         await Promise.all(uploadTasks);
         
         // Restore original patterns
-        await restoreOriginalPatterns(mainAvailable, auxAvailable);
+        const connectedPOIs = [];
+        if (mainAvailable) connectedPOIs.push('Main POI');
+        if (auxAvailable) connectedPOIs.push('Aux POI');
+        if (threeAvailable) connectedPOIs.push('POI 3');
+        if (fourAvailable) connectedPOIs.push('POI 4');
+        if (fiveAvailable) connectedPOIs.push('POI 5');
+        if (sixAvailable) connectedPOIs.push('POI 6');
+        if (sevenAvailable) connectedPOIs.push('POI 7');
+        if (eightAvailable) connectedPOIs.push('POI 8');
+        await restoreOriginalPatterns(mainAvailable, auxAvailable, threeAvailable, fourAvailable, fiveAvailable, sixAvailable, sevenAvailable, eightAvailable);
         
-        createMessage(`Upload completed to ${mainAvailable ? 'Main POI' : ''}${auxAvailable ? ' and Aux POI' : ''}`);
+        createMessage(`Upload completed to ${connectedPOIs.length > 0 ? connectedPOIs.join(', ') : 'No POIs'}`);
 
     } catch (error) {
         handleCriticalError(error);
@@ -130,14 +183,14 @@ function logBatchCompletion(batchNumber, totalBatches, label) {
   createMessage(`${label}: Completed ${progress} (${batchNumber * state.upload.config.BATCH_SIZE} files)`);
 }
 
-async function processPoiWithBackoff(filesToUpload, ip, label) {
+async function processPairWithBackoff(filesToUpload, targetIps, pairPixelCount, label) {
     const batchCount = Math.ceil(filesToUpload.length / state.upload.config.BATCH_SIZE);
     
     for(let batchIndex = 0; batchIndex < batchCount; batchIndex++) {
         const batchStart = batchIndex * state.upload.config.BATCH_SIZE;
         const batchFiles = filesToUpload.slice(batchStart, batchStart + state.upload.config.BATCH_SIZE);
         
-        await processBatch(batchFiles, ip, label, batchIndex+1, batchCount);
+        await processPairBatch(batchFiles, targetIps, pairPixelCount, label, batchIndex+1, batchCount);
         
         if(batchIndex < batchCount - 1) {
             await delay(state.upload.config.INTER_BATCH_DELAY);
@@ -145,9 +198,9 @@ async function processPoiWithBackoff(filesToUpload, ip, label) {
     }
 }
 
-async function processBatch(batchFiles, ip, label, batchNumber, totalBatches) {
-    const batchPromises = batchFiles.map(async (fileData, fileIndex) => {
-        await processFileWithRetry(fileData, ip);
+async function processPairBatch(batchFiles, targetIps, pairPixelCount, label, batchNumber, totalBatches) {
+    const batchPromises = batchFiles.map(async (fileData) => {
+        await processFileForPairWithRetry(fileData, targetIps, pairPixelCount);
         await delay(state.upload.config.INTER_FILE_DELAY);
     });
     
@@ -155,52 +208,46 @@ async function processBatch(batchFiles, ip, label, batchNumber, totalBatches) {
     logBatchCompletion(batchNumber, totalBatches, label);
 }
 
-async function processSingleFile(fileData, ip) {
-    try {
-        // Check if file is already a .bin file
-        if (fileData.file.name.toLowerCase().endsWith('.bin')) {
-            // Upload .bin file directly without processing
-            const formData = new FormData();
-            formData.append('file', fileData.file, fileData.targetName);
-
-            const response = await fetch(`http://${ip}/edit`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error(`Upload failed: ${response.statusText}`);
-            }
-        } else {
-            // Process image files through Jimp
-            const binaryData = await processImageFile(fileData.file);
-            
-            const formData = new FormData();
-            const blob = new Blob([binaryData], { 
-                type: 'application/octet-stream' 
-            });
-            
-            formData.append('file', blob, fileData.targetName);
-
-            const response = await fetch(`http://${ip}/edit`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error(`Upload failed: ${response.statusText}`);
-            }
-        }
-    } catch (error) {
-        console.error('File processing failed:', error);
-        throw error;
+async function processFileForPair(fileData, targetIps, pairPixelCount) {
+    let binaryData;
+    
+    // Check if file is already a .bin file
+    if (fileData.file.name.toLowerCase().endsWith('.bin')) {
+        // Read .bin file directly without processing
+        const reader = new FileReader();
+        binaryData = await new Promise((resolve, reject) => {
+            reader.onload = (e) => resolve(new Uint8Array(e.target.result));
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(fileData.file);
+        });
+    } else {
+        // Process image files through Jimp with pair-specific pixel count
+        binaryData = await processImageFile(fileData.file, pairPixelCount);
     }
+    
+    // Upload the same compressed data to all target IPs in the pair
+    const blob = new Blob([binaryData], { type: 'application/octet-stream' });
+    
+    const uploadPromises = targetIps.map(ip => {
+        const formData = new FormData();
+        formData.append('file', blob, fileData.targetName);
+        return fetch(`http://${ip}/edit`, {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`Upload to ${ip} failed: ${response.statusText}`);
+            }
+        });
+    });
+    
+    await Promise.all(uploadPromises);
 }
 
-async function processFileWithRetry(fileData, ip, label) {
+async function processFileForPairWithRetry(fileData, targetIps, pairPixelCount) {
     for(let attempt = 1; attempt <= state.upload.config.MAX_RETRIES; attempt++) {
         try {
-            await processSingleFile(fileData, ip);
+            await processFileForPair(fileData, targetIps, pairPixelCount);
             return; // Success - exit retry loop
         } catch(error) {
             if (attempt === state.upload.config.MAX_RETRIES) {

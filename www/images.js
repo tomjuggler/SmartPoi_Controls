@@ -1,23 +1,16 @@
 // Pattern sending function for image activation
 async function sendPatternToBothPOIs(pattern) {
     try {
-        // Send pattern to both POIs with timeout for backwards compatibility
-        const requests = [
-            fetch(`http://${state.poiIPs.mainIP}/pattern?patternChooserChange=${pattern}`, { 
+        // Send pattern to all connected POIs with timeout for backwards compatibility
+        const requests = getPoiIPs().map(ip =>
+            fetch(`http://${ip}/pattern?patternChooserChange=${pattern}`, { 
                 method: 'GET',
                 signal: AbortSignal.timeout(2000) 
             }).catch(error => {
-                console.log('Pattern request to main POI failed (backwards compatibility):', error.message);
-                // Don't show error message for timeout - device might not support this feature
-            }),
-            fetch(`http://${state.poiIPs.auxIP}/pattern?patternChooserChange=${pattern}`, { 
-                method: 'GET',
-                signal: AbortSignal.timeout(2000)
-            }).catch(error => {
-                console.log('Pattern request to aux POI failed (backwards compatibility):', error.message);
+                console.log(`Pattern request to ${ip} failed (backwards compatibility):`, error.message);
                 // Don't show error message for timeout - device might not support this feature
             })
-        ];
+        );
 
         await Promise.allSettled(requests);
         createMessage(`Pattern ${pattern} activated`);
@@ -30,7 +23,7 @@ async function sendPatternToBothPOIs(pattern) {
 // Long Press Functions
 let longPressTimer = null;
 let longPressTarget = null;
-
+let contextMenuJustShown = false; // Flag to prevent click after context menu
 // File Validation Constants
 const MAX_FILE_SIZE_MB = 10; // Maximum file size in MB
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024; // Convert to bytes
@@ -214,7 +207,10 @@ function handleTouchStart(e) {
     
     longPressTarget = wrapper;
     longPressTimer = setTimeout(() => {
+        contextMenuJustShown = true; // Prevent click after long press
         showContextMenu(wrapper);
+        // Reset flag after a short delay
+        setTimeout(() => { contextMenuJustShown = false; }, 300);
     }, 500); // 500ms for long press
 }
 
@@ -321,6 +317,18 @@ function getIPFromContainer(container) {
         return state.poiIPs.mainIP;
     } else if (container.id === 'auxImageGrid') {
         return state.poiIPs.auxIP;
+    } else if (container.id === 'threeImageGrid') {
+        return state.poiIPs.poiThreeIP;
+    } else if (container.id === 'fourImageGrid') {
+        return state.poiIPs.poiFourIP;
+    } else if (container.id === 'fiveImageGrid') {
+        return state.poiIPs.poiFiveIP;
+    } else if (container.id === 'sixImageGrid') {
+        return state.poiIPs.poiSixIP;
+    } else if (container.id === 'sevenImageGrid') {
+        return state.poiIPs.poiSevenIP;
+    } else if (container.id === 'eightImageGrid') {
+        return state.poiIPs.poiEightIP;
     }
     return null;
 }
@@ -357,7 +365,14 @@ async function deleteImageFromPoi(ip, fileName) {
         if (response.ok) {
             createMessage(`${fileName} deleted successfully`);
             // Refresh the image to show black placeholder
-            const containerId = ip === state.poiIPs.mainIP ? 'mainImageGrid' : 'auxImageGrid';
+            const containerId = ip === state.poiIPs.mainIP ? 'mainImageGrid' 
+                : ip === state.poiIPs.auxIP ? 'auxImageGrid' 
+                : ip === state.poiIPs.poiThreeIP ? 'threeImageGrid'
+                : ip === state.poiIPs.poiFourIP ? 'fourImageGrid'
+                : ip === state.poiIPs.poiFiveIP ? 'fiveImageGrid'
+                : ip === state.poiIPs.poiSixIP ? 'sixImageGrid'
+                : ip === state.poiIPs.poiSevenIP ? 'sevenImageGrid'
+                : 'eightImageGrid';
             const container = document.getElementById(containerId);
             if (container) {
                 const wrapper = container.querySelector(`[data-file-name="${fileName}"]`);
@@ -402,6 +417,12 @@ function refreshAllImages(fullRefresh = false) {
     if (fullRefresh) {
         createBlackImages('mainImageGrid', state.poiIPs.mainIP);
         createBlackImages('auxImageGrid', state.poiIPs.auxIP);
+        createBlackImages('threeImageGrid', state.poiIPs.poiThreeIP);
+        createBlackImages('fourImageGrid', state.poiIPs.poiFourIP);
+        createBlackImages('fiveImageGrid', state.poiIPs.poiFiveIP);
+        createBlackImages('sixImageGrid', state.poiIPs.poiSixIP);
+        createBlackImages('sevenImageGrid', state.poiIPs.poiSevenIP);
+        createBlackImages('eightImageGrid', state.poiIPs.poiEightIP);
     } else {
         // Just update image sizes
         document.querySelectorAll('.poi-image').forEach(img => {
@@ -446,6 +467,21 @@ function createBlackImages(containerId, ip) {
         wrapper.addEventListener('mousemove', handleTouchMove);
         wrapper.addEventListener('mouseup', handleTouchEnd);
         wrapper.addEventListener('mouseleave', handleTouchEnd);
+        
+        // Right-click context menu for desktop
+        wrapper.addEventListener('contextmenu', function(e) {
+            e.preventDefault(); // Suppress browser default context menu
+            e.stopPropagation();
+            // Cancel any pending long press timer
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            contextMenuJustShown = true;
+            showContextMenu(wrapper);
+            // Reset flag after a short delay
+            setTimeout(() => { contextMenuJustShown = false; }, 300);
+        });
         // Conditionally add drag-and-drop handlers for desktop devices
         if (typeof window.isDesktopDevice === 'function' && window.isDesktopDevice()) {
             // Drag event handlers for visual feedback
@@ -460,9 +496,13 @@ function createBlackImages(containerId, ip) {
                 handleEnhancedImageDrop(e, ip);
             });
         }
-
         // Click handler for preview and pattern activation
-        wrapper.addEventListener('click', function() {
+        wrapper.addEventListener('click', function(e) {
+            // Skip if context menu was just shown (right-click or long press)
+            if (contextMenuJustShown) {
+                contextMenuJustShown = false;
+                return;
+            }
             // Send pattern HTTP request for this image (pattern 8-69)
             const patternNumber = i + 8; // Map images to patterns 8-69
             sendPatternToBothPOIs(patternNumber);
@@ -525,12 +565,17 @@ async function updatePixelsOnBoth() {
   }
   
   try {
-    const [mainRes, auxRes] = await Promise.all([
-      fetch(`http://${state.poiIPs.mainIP}/pixels?num=${pixels}`),
-      fetch(`http://${state.poiIPs.auxIP}/pixels?num=${pixels}`)
-    ]);
+    const results = await Promise.allSettled(
+      getPoiIPs().map(ip =>
+        fetch(`http://${ip}/pixels?num=${pixels}`)
+      )
+    );
     
-    if (!mainRes.ok || !auxRes.ok) throw new Error('Pixel update failed');
+    const failures = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok));
+    
+    if (failures.length > 0) {
+      createMessage(`Pixel update failed for ${failures.length} POI(s)`, 'warning');
+    }
     
     updateAllPixelDisplays(parseInt(pixels, 10));
     
@@ -546,8 +591,17 @@ async function getFilesAndDisplay() {
   console.log('getFilesAndDisplay called');
   await getFilesOne();
   await getFilesTwo();
+  
+  // Also fetch POI 3-8 if in router mode
+  if (state.poiIPs.routerMode) {
+      if (state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0') await getFilesThree();
+      if (state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') await getFilesFour();
+      if (state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0') await getFilesFive();
+      if (state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0') await getFilesSix();
+      if (state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0') await getFilesSeven();
+      if (state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0') await getFilesEight();
+  }
 }
-
 async function getFilesOne() {
   const indicator = document.getElementById('get-files-one-indicator');
   try {
@@ -570,6 +624,151 @@ async function getFilesOne() {
   } catch (error) {
     console.error('Error fetching main images:', error);
     indicator.textContent = "Failed to fetch images";
+  }
+}
+
+
+async function getFilesThree() {
+  const indicator = document.getElementById('get-files-three-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiThreeIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiThreeIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 3 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 3 images:', error);
+    indicator.textContent = "Failed to fetch POI 3 images";
+  }
+}
+
+async function getFilesFour() {
+  const indicator = document.getElementById('get-files-four-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiFourIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiFourIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 4 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 4 images:', error);
+    indicator.textContent = "Failed to fetch POI 4 images";
+  }
+}
+
+async function getFilesFive() {
+  const indicator = document.getElementById('get-files-five-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiFiveIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiFiveIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 5 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 5 images:', error);
+    indicator.textContent = "Failed to fetch POI 5 images";
+  }
+}
+
+async function getFilesSix() {
+  const indicator = document.getElementById('get-files-six-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiSixIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiSixIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 6 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 6 images:', error);
+    indicator.textContent = "Failed to fetch POI 6 images";
+  }
+}
+
+async function getFilesSeven() {
+  const indicator = document.getElementById('get-files-seven-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiSevenIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiSevenIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 7 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 7 images:', error);
+    indicator.textContent = "Failed to fetch POI 7 images";
+  }
+}
+
+async function getFilesEight() {
+  const indicator = document.getElementById('get-files-eight-indicator');
+  if (!indicator) return;
+  try {
+    indicator.textContent = "Fetching images...";
+    const response = await fetch(`http://${state.poiIPs.poiEightIP}/list?dir=/`);
+    const files = await response.json();
+    const imageFiles = files.filter(f => f.name.endsWith('.bin')).map(f => f.name);
+    
+    for (const fileName of imageFiles) {
+      if (typeof window.decompressAndDisplay === 'function') {
+        await window.decompressAndDisplay(state.poiIPs.poiEightIP, fileName);
+      } else {
+        createMessage('Image processing function not available', 'error');
+        break;
+      }
+    }
+    indicator.textContent = "POI 8 images fetched successfully";
+  } catch (error) {
+    console.error('Error fetching POI 8 images:', error);
+    indicator.textContent = "Failed to fetch POI 8 images";
   }
 }
 
@@ -603,13 +802,37 @@ async function fetchInitialPixels() {
   try {
     const mainPixels = await fetchNumberOfPixels(state.poiIPs.mainIP);
     const auxPixels = await fetchNumberOfPixels(state.poiIPs.auxIP);
-    
-    // If both POIs respond, use main POI as primary, but update displays for both
+    const threePixels = await fetchNumberOfPixels(state.poiIPs.poiThreeIP);
+    const fourPixels = await fetchNumberOfPixels(state.poiIPs.poiFourIP);
+    const fivePixels = await fetchNumberOfPixels(state.poiIPs.poiFiveIP);
+    const sixPixels = await fetchNumberOfPixels(state.poiIPs.poiSixIP);
+    const sevenPixels = await fetchNumberOfPixels(state.poiIPs.poiSevenIP);
+    const eightPixels = await fetchNumberOfPixels(state.poiIPs.poiEightIP);
+
+    // Update display for each POI
     if (mainPixels !== null) {
       updatePixelDisplayForPoi('main', mainPixels);
     }
     if (auxPixels !== null) {
       updatePixelDisplayForPoi('aux', auxPixels);
+    }
+    if (threePixels !== null) {
+      updatePixelDisplayForPoi('three', threePixels);
+    }
+    if (fourPixels !== null) {
+      updatePixelDisplayForPoi('four', fourPixels);
+    }
+    if (fivePixels !== null) {
+      updatePixelDisplayForPoi('five', fivePixels);
+    }
+    if (sixPixels !== null) {
+      updatePixelDisplayForPoi('six', sixPixels);
+    }
+    if (sevenPixels !== null) {
+      updatePixelDisplayForPoi('seven', sevenPixels);
+    }
+    if (eightPixels !== null) {
+      updatePixelDisplayForPoi('eight', eightPixels);
     }
     
     // Warn if values differ between POIs
@@ -662,20 +885,26 @@ async function deleteImage(imageUrl) {
 }
 
 async function deleteAllImages() {
-    if (!confirm('WARNING: This will delete ALL images from both POIs!')) return;
+    if (!confirm('WARNING: This will delete ALL images from all POIs!')) return;
     
     try {
         // Generate all possible image filenames
         const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         const filenames = Array.from(characters).map(c => `${c}.bin`);
 
-        // Delete from both POIs
+        // Delete from all POIs
         await Promise.all([
             deleteFromPoi(state.poiIPs.mainIP, filenames),
-            deleteFromPoi(state.poiIPs.auxIP, filenames)
+            deleteFromPoi(state.poiIPs.auxIP, filenames),
+            deleteFromPoi(state.poiIPs.poiThreeIP, filenames),
+            deleteFromPoi(state.poiIPs.poiFourIP, filenames),
+            deleteFromPoi(state.poiIPs.poiFiveIP, filenames),
+            deleteFromPoi(state.poiIPs.poiSixIP, filenames),
+            deleteFromPoi(state.poiIPs.poiSevenIP, filenames),
+            deleteFromPoi(state.poiIPs.poiEightIP, filenames)
         ]);
         
-        createMessage('All images deleted from both POIs');
+        createMessage('All images deleted from all POIs');
         refreshAllImages(true);
     } catch (error) {
         console.error('Delete all failed:', error);
@@ -701,6 +930,12 @@ function setupImageHandlers() {
   // Initialize image grids with current IPs only if empty
   const mainGrid = document.getElementById('mainImageGrid');
   const auxGrid = document.getElementById('auxImageGrid');
+  const threeGrid = document.getElementById('threeImageGrid');
+  const fourGrid = document.getElementById('fourImageGrid');
+  const fiveGrid = document.getElementById('fiveImageGrid');
+  const sixGrid = document.getElementById('sixImageGrid');
+  const sevenGrid = document.getElementById('sevenImageGrid');
+  const eightGrid = document.getElementById('eightImageGrid');
   
   if (mainGrid && mainGrid.children.length === 0) {
     createBlackImages('mainImageGrid', state.poiIPs.mainIP);
@@ -708,15 +943,39 @@ function setupImageHandlers() {
   if (auxGrid && auxGrid.children.length === 0) {
     createBlackImages('auxImageGrid', state.poiIPs.auxIP);
   }
+  if (threeGrid && threeGrid.children.length === 0) {
+    createBlackImages('threeImageGrid', state.poiIPs.poiThreeIP);
+  }
+  if (fourGrid && fourGrid.children.length === 0) {
+    createBlackImages('fourImageGrid', state.poiIPs.poiFourIP);
+  }
+  if (fiveGrid && fiveGrid.children.length === 0) {
+    createBlackImages('fiveImageGrid', state.poiIPs.poiFiveIP);
+  }
+  if (sixGrid && sixGrid.children.length === 0) {
+    createBlackImages('sixImageGrid', state.poiIPs.poiSixIP);
+  }
+  if (sevenGrid && sevenGrid.children.length === 0) {
+    createBlackImages('sevenImageGrid', state.poiIPs.poiSevenIP);
+  }
+  if (eightGrid && eightGrid.children.length === 0) {
+    createBlackImages('eightImageGrid', state.poiIPs.poiEightIP);
+  }
 
   // Add new drag handlers to containers
   document.querySelectorAll('.image-grid-container').forEach(grid => {
     grid.addEventListener('dragover', handleDragOver);
     grid.addEventListener('drop', (event) => {
       // Use our primary handler that checks for valid tiles
-      handleImageDrop(event, grid.id === 'mainImageGrid' 
-        ? state.poiIPs.mainIP 
-        : state.poiIPs.auxIP
+      handleImageDrop(event, 
+        grid.id === 'mainImageGrid' ? state.poiIPs.mainIP :
+        grid.id === 'auxImageGrid' ? state.poiIPs.auxIP :
+        grid.id === 'threeImageGrid' ? state.poiIPs.poiThreeIP :
+        grid.id === 'fourImageGrid' ? state.poiIPs.poiFourIP :
+        grid.id === 'fiveImageGrid' ? state.poiIPs.poiFiveIP :
+        grid.id === 'sixImageGrid' ? state.poiIPs.poiSixIP :
+        grid.id === 'sevenImageGrid' ? state.poiIPs.poiSevenIP :
+        state.poiIPs.poiEightIP
       );
     });
   });

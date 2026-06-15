@@ -14,6 +14,42 @@ function setAuxIp() {
     }
 }
 
+function setPoiThreeIp() {
+    if (typeof window.networkSetPoiThreeIp === 'function') {
+        window.networkSetPoiThreeIp();
+    }
+}
+
+function setPoiFourIp() {
+    if (typeof window.networkSetPoiFourIp === 'function') {
+        window.networkSetPoiFourIp();
+    }
+}
+
+function setPoiFiveIp() {
+    if (typeof window.networkSetPoiFiveIp === 'function') {
+        window.networkSetPoiFiveIp();
+    }
+}
+
+function setPoiSixIp() {
+    if (typeof window.networkSetPoiSixIp === 'function') {
+        window.networkSetPoiSixIp();
+    }
+}
+
+function setPoiSevenIp() {
+    if (typeof window.networkSetPoiSevenIp === 'function') {
+        window.networkSetPoiSevenIp();
+    }
+}
+
+function setPoiEightIp() {
+    if (typeof window.networkSetPoiEightIp === 'function') {
+        window.networkSetPoiEightIp();
+    }
+}
+
 
 function submitRouterMode() {
     if (typeof window.controls && typeof window.controls.submitRouterMode === 'function') {
@@ -170,6 +206,92 @@ function initializeFetchButton() {
                 document.getElementById('passwordInput').placeholder = state.settings.password;
             }
 
+            
+            // Fetch and update POI 3-8 settings if in router mode
+            if (state.poiIPs.routerMode && state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0') {
+                const threeData = await fetchSettings(state.poiIPs.poiThreeIP);
+                if (threeData) {
+                    state.settings.routerThree = threeData.router;
+                    state.settings.passwordThree = threeData.password;
+                    state.settings.channelThree = threeData.channel;
+                    state.settings.patternThree = threeData.pattern;
+                    state.settings.pixelsThree = await fetchNumberOfPixels(state.poiIPs.poiThreeIP);
+                    document.getElementById('routerThree').textContent = state.settings.routerThree;
+                    document.getElementById('channelThree').textContent = state.settings.channelThree;
+                    document.getElementById('patternThree').textContent = state.settings.patternThree;
+                    updatePixelDisplayForPoi('three', state.settings.pixelsThree || '?');
+                }
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') {
+                const fourData = await fetchSettings(state.poiIPs.poiFourIP);
+                if (fourData) {
+                    state.settings.routerFour = fourData.router;
+                    state.settings.passwordFour = fourData.password;
+                    state.settings.channelFour = fourData.channel;
+                    state.settings.patternFour = fourData.pattern;
+                    state.settings.pixelsFour = await fetchNumberOfPixels(state.poiIPs.poiFourIP);
+                    document.getElementById('routerFour').textContent = state.settings.routerFour;
+                    document.getElementById('channelFour').textContent = state.settings.channelFour;
+                    document.getElementById('patternFour').textContent = state.settings.patternFour;
+                    updatePixelDisplayForPoi('four', state.settings.pixelsFour || '?');
+                }
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0') {
+                const fiveData = await fetchSettings(state.poiIPs.poiFiveIP);
+                if (fiveData) {
+                    state.settings.routerFive = fiveData.router;
+                    state.settings.passwordFive = fiveData.password;
+                    state.settings.channelFive = fiveData.channel;
+                    state.settings.patternFive = fiveData.pattern;
+                    state.settings.pixelsFive = await fetchNumberOfPixels(state.poiIPs.poiFiveIP);
+                    document.getElementById('routerFive').textContent = state.settings.routerFive;
+                    document.getElementById('channelFive').textContent = state.settings.channelFive;
+                    document.getElementById('patternFive').textContent = state.settings.patternFive;
+                    updatePixelDisplayForPoi('five', state.settings.pixelsFive || '?');
+                }
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0') {
+                const sixData = await fetchSettings(state.poiIPs.poiSixIP);
+                if (sixData) {
+                    state.settings.routerSix = sixData.router;
+                    state.settings.passwordSix = sixData.password;
+                    state.settings.channelSix = sixData.channel;
+                    state.settings.patternSix = sixData.pattern;
+                    state.settings.pixelsSix = await fetchNumberOfPixels(state.poiIPs.poiSixIP);
+                    document.getElementById('routerSix').textContent = state.settings.routerSix;
+                    document.getElementById('channelSix').textContent = state.settings.channelSix;
+                    document.getElementById('patternSix').textContent = state.settings.patternSix;
+                    updatePixelDisplayForPoi('six', state.settings.pixelsSix || '?');
+                }
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0') {
+                const sevenData = await fetchSettings(state.poiIPs.poiSevenIP);
+                if (sevenData) {
+                    state.settings.routerSeven = sevenData.router;
+                    state.settings.passwordSeven = sevenData.password;
+                    state.settings.channelSeven = sevenData.channel;
+                    state.settings.patternSeven = sevenData.pattern;
+                    state.settings.pixelsSeven = await fetchNumberOfPixels(state.poiIPs.poiSevenIP);
+                    document.getElementById('routerSeven').textContent = state.settings.routerSeven;
+                    document.getElementById('channelSeven').textContent = state.settings.channelSeven;
+                    document.getElementById('patternSeven').textContent = state.settings.patternSeven;
+                    updatePixelDisplayForPoi('seven', state.settings.pixelsSeven || '?');
+                }
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0') {
+                const eightData = await fetchSettings(state.poiIPs.poiEightIP);
+                if (eightData) {
+                    state.settings.routerEight = eightData.router;
+                    state.settings.passwordEight = eightData.password;
+                    state.settings.channelEight = eightData.channel;
+                    state.settings.patternEight = eightData.pattern;
+                    state.settings.pixelsEight = await fetchNumberOfPixels(state.poiIPs.poiEightIP);
+                    document.getElementById('routerEight').textContent = state.settings.routerEight;
+                    document.getElementById('channelEight').textContent = state.settings.channelEight;
+                    document.getElementById('patternEight').textContent = state.settings.patternEight;
+                    updatePixelDisplayForPoi('eight', state.settings.pixelsEight || '?');
+                }
+            }
             // Update Aux POI 
             if (auxData) {
                 state.settings.routerTwo = auxData.router;
@@ -182,6 +304,98 @@ function initializeFetchButton() {
                 document.getElementById('channelTwo').textContent = state.settings.channelTwo;
                 document.getElementById('patternTwo').textContent = state.settings.patternTwo;
                 updatePixelDisplayForPoi('aux', state.settings.pixelsTwo || '?');
+            }
+            
+            // Fetch and update POI 3-8 settings if in router mode
+            if (state.poiIPs.routerMode && state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0') {
+                const threeData = await fetchSettings(state.poiIPs.poiThreeIP);
+                if (threeData) {
+                    state.settings.routerThree = threeData.router;
+                    state.settings.passwordThree = threeData.password;
+                    state.settings.channelThree = threeData.channel;
+                    state.settings.patternThree = threeData.pattern;
+                    state.settings.pixelsThree = await fetchNumberOfPixels(state.poiIPs.poiThreeIP);
+                    
+                    document.getElementById('routerThree').textContent = state.settings.routerThree;
+                    document.getElementById('channelThree').textContent = state.settings.channelThree;
+                    document.getElementById('patternThree').textContent = state.settings.patternThree;
+                    updatePixelDisplayForPoi('three', state.settings.pixelsThree || '?');
+                }
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') {
+                const fourData = await fetchSettings(state.poiIPs.poiFourIP);
+                if (fourData) {
+                    state.settings.routerFour = fourData.router;
+                    state.settings.passwordFour = fourData.password;
+                    state.settings.channelFour = fourData.channel;
+                    state.settings.patternFour = fourData.pattern;
+                    state.settings.pixelsFour = await fetchNumberOfPixels(state.poiIPs.poiFourIP);
+                    
+                    document.getElementById('routerFour').textContent = state.settings.routerFour;
+                    document.getElementById('channelFour').textContent = state.settings.channelFour;
+                    document.getElementById('patternFour').textContent = state.settings.patternFour;
+                    updatePixelDisplayForPoi('four', state.settings.pixelsFour || '?');
+                }
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0') {
+                const fiveData = await fetchSettings(state.poiIPs.poiFiveIP);
+                if (fiveData) {
+                    state.settings.routerFive = fiveData.router;
+                    state.settings.passwordFive = fiveData.password;
+                    state.settings.channelFive = fiveData.channel;
+                    state.settings.patternFive = fiveData.pattern;
+                    state.settings.pixelsFive = await fetchNumberOfPixels(state.poiIPs.poiFiveIP);
+                    
+                    document.getElementById('routerFive').textContent = state.settings.routerFive;
+                    document.getElementById('channelFive').textContent = state.settings.channelFive;
+                    document.getElementById('patternFive').textContent = state.settings.patternFive;
+                    updatePixelDisplayForPoi('five', state.settings.pixelsFive || '?');
+                }
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0') {
+                const sixData = await fetchSettings(state.poiIPs.poiSixIP);
+                if (sixData) {
+                    state.settings.routerSix = sixData.router;
+                    state.settings.passwordSix = sixData.password;
+                    state.settings.channelSix = sixData.channel;
+                    state.settings.patternSix = sixData.pattern;
+                    state.settings.pixelsSix = await fetchNumberOfPixels(state.poiIPs.poiSixIP);
+                    
+                    document.getElementById('routerSix').textContent = state.settings.routerSix;
+                    document.getElementById('channelSix').textContent = state.settings.channelSix;
+                    document.getElementById('patternSix').textContent = state.settings.patternSix;
+                    updatePixelDisplayForPoi('six', state.settings.pixelsSix || '?');
+                }
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0') {
+                const sevenData = await fetchSettings(state.poiIPs.poiSevenIP);
+                if (sevenData) {
+                    state.settings.routerSeven = sevenData.router;
+                    state.settings.passwordSeven = sevenData.password;
+                    state.settings.channelSeven = sevenData.channel;
+                    state.settings.patternSeven = sevenData.pattern;
+                    state.settings.pixelsSeven = await fetchNumberOfPixels(state.poiIPs.poiSevenIP);
+                    
+                    document.getElementById('routerSeven').textContent = state.settings.routerSeven;
+                    document.getElementById('channelSeven').textContent = state.settings.channelSeven;
+                    document.getElementById('patternSeven').textContent = state.settings.patternSeven;
+                    updatePixelDisplayForPoi('seven', state.settings.pixelsSeven || '?');
+                }
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0') {
+                const eightData = await fetchSettings(state.poiIPs.poiEightIP);
+                if (eightData) {
+                    state.settings.routerEight = eightData.router;
+                    state.settings.passwordEight = eightData.password;
+                    state.settings.channelEight = eightData.channel;
+                    state.settings.patternEight = eightData.pattern;
+                    state.settings.pixelsEight = await fetchNumberOfPixels(state.poiIPs.poiEightIP);
+                    
+                    document.getElementById('routerEight').textContent = state.settings.routerEight;
+                    document.getElementById('channelEight').textContent = state.settings.channelEight;
+                    document.getElementById('patternEight').textContent = state.settings.patternEight;
+                    updatePixelDisplayForPoi('eight', state.settings.pixelsEight || '?');
+                }
             }
             highlightActiveButton(mainData.pattern);
             // Force UI refresh
@@ -208,6 +422,56 @@ function initializeFetchButton() {
             if (passwordAux) {
                 passwordAux.textContent = '******';
                 passwordAux.dataset.actualPassword = state.settings.passwordTwo;
+            }
+            
+            // Fallback display for POI 3-8 if in router mode
+            if (state.poiIPs.routerMode && state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0') {
+                document.getElementById('routerThree').textContent = state.settings.routerThree || 'N/A';
+                const pw3 = document.getElementById('passwordThree');
+                if (pw3) { pw3.textContent = '******'; pw3.dataset.actualPassword = state.settings.passwordThree || ''; }
+                document.getElementById('channelThree').textContent = state.settings.channelThree || 'N/A';
+                document.getElementById('patternThree').textContent = state.settings.patternThree || 'N/A';
+                updatePixelDisplayForPoi('three', state.settings.pixelsThree || '?');
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') {
+                document.getElementById('routerFour').textContent = state.settings.routerFour || 'N/A';
+                const pw4 = document.getElementById('passwordFour');
+                if (pw4) { pw4.textContent = '******'; pw4.dataset.actualPassword = state.settings.passwordFour || ''; }
+                document.getElementById('channelFour').textContent = state.settings.channelFour || 'N/A';
+                document.getElementById('patternFour').textContent = state.settings.patternFour || 'N/A';
+                updatePixelDisplayForPoi('four', state.settings.pixelsFour || '?');
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0') {
+                document.getElementById('routerFive').textContent = state.settings.routerFive || 'N/A';
+                const pw5 = document.getElementById('passwordFive');
+                if (pw5) { pw5.textContent = '******'; pw5.dataset.actualPassword = state.settings.passwordFive || ''; }
+                document.getElementById('channelFive').textContent = state.settings.channelFive || 'N/A';
+                document.getElementById('patternFive').textContent = state.settings.patternFive || 'N/A';
+                updatePixelDisplayForPoi('five', state.settings.pixelsFive || '?');
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0') {
+                document.getElementById('routerSix').textContent = state.settings.routerSix || 'N/A';
+                const pw6 = document.getElementById('passwordSix');
+                if (pw6) { pw6.textContent = '******'; pw6.dataset.actualPassword = state.settings.passwordSix || ''; }
+                document.getElementById('channelSix').textContent = state.settings.channelSix || 'N/A';
+                document.getElementById('patternSix').textContent = state.settings.patternSix || 'N/A';
+                updatePixelDisplayForPoi('six', state.settings.pixelsSix || '?');
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0') {
+                document.getElementById('routerSeven').textContent = state.settings.routerSeven || 'N/A';
+                const pw7 = document.getElementById('passwordSeven');
+                if (pw7) { pw7.textContent = '******'; pw7.dataset.actualPassword = state.settings.passwordSeven || ''; }
+                document.getElementById('channelSeven').textContent = state.settings.channelSeven || 'N/A';
+                document.getElementById('patternSeven').textContent = state.settings.patternSeven || 'N/A';
+                updatePixelDisplayForPoi('seven', state.settings.pixelsSeven || '?');
+            }
+            if (state.poiIPs.routerMode && state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0') {
+                document.getElementById('routerEight').textContent = state.settings.routerEight || 'N/A';
+                const pw8 = document.getElementById('passwordEight');
+                if (pw8) { pw8.textContent = '******'; pw8.dataset.actualPassword = state.settings.passwordEight || ''; }
+                document.getElementById('channelEight').textContent = state.settings.channelEight || 'N/A';
+                document.getElementById('patternEight').textContent = state.settings.patternEight || 'N/A';
+                updatePixelDisplayForPoi('eight', state.settings.pixelsEight || '?');
             }
         }
     });
@@ -260,13 +524,19 @@ async function deleteAllImages() {
         const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         const filenames = Array.from(characters).map(c => `${c}.bin`);
 
-        // Delete from both POIs
+        // Delete from all POIs
         await Promise.all([
             deleteFromPoi(state.poiIPs.mainIP, filenames),
-            deleteFromPoi(state.poiIPs.auxIP, filenames)
+            deleteFromPoi(state.poiIPs.auxIP, filenames),
+            deleteFromPoi(state.poiIPs.poiThreeIP, filenames),
+            deleteFromPoi(state.poiIPs.poiFourIP, filenames),
+            deleteFromPoi(state.poiIPs.poiFiveIP, filenames),
+            deleteFromPoi(state.poiIPs.poiSixIP, filenames),
+            deleteFromPoi(state.poiIPs.poiSevenIP, filenames),
+            deleteFromPoi(state.poiIPs.poiEightIP, filenames)
         ]);
         
-        createMessage('All images deleted from both POIs');
+        createMessage('All images deleted from all POIs');
         refreshAllImages(true);
     } catch (error) {
         console.error('Delete all failed:', error);
@@ -465,64 +735,11 @@ function loadTabContent(tabName) {
 }
 
 // State management
-function loadPersistedState() {
-    const savedState = JSON.parse(localStorage.getItem('poiState'));
-    if (savedState) {
-        Object.assign(state, savedState);
-    }
-}
 
-function savePersistedState() {
-    localStorage.setItem('poiState', JSON.stringify({
-        poiOneIP: state.poiOneIP,
-        poiTwoIP: state.poiTwoIP,
-        routerMode: state.routerMode,
-        numberOfPixels: state.numberOfPixels,
-        wsStrip: state.wsStrip
-    }));
-}
+// Danger Zone Functions (delegated to controls.js)
 
-// Danger Zone Functions
-async function submitRouterMode() {
-    const routerMode = document.getElementById('routerModeCheckbox').checked;
-    
-    try {
-        // Update both POIs first
-        await Promise.all([
-            fetch(`http://${state.poiIPs.mainIP}/router?router=${routerMode ? 1 : 0}`),
-            fetch(`http://${state.poiIPs.auxIP}/router?router=${routerMode ? 1 : 0}`)
-        ]);
-
-        // Update local state
-        state.poiIPs.routerMode = routerMode;
-        
-        const mainIpInput = document.getElementById('manualMainIp');
-        const auxIpInput = document.getElementById('manualAuxIp');
-        
-        if (routerMode) {
-            // Restore saved router mode IPs
-            state.poiIPs.mainIP = state.poiIPs.savedRouterIPs.main || "192.168.1.1";
-            state.poiIPs.auxIP = state.poiIPs.savedRouterIPs.aux || "192.168.1.78";
-        } else {
-            // Save current IPs before switching to AP mode
-            state.poiIPs.savedRouterIPs = {
-                main: state.poiIPs.mainIP,
-                aux: state.poiIPs.auxIP
-            };
-            // Set hardcoded AP mode IPs
-            state.poiIPs.mainIP = "192.168.1.1";
-            state.poiIPs.auxIP = "192.168.1.78";
-        }
-
-        saveState();
-        updateNetworkModeDisplay();
-        createMessage(`Switched to ${routerMode ? 'Router' : 'AP'} mode`);
-        updateStatusIndicators();
-    } catch (error) {
-        console.error('Error updating router mode:', error);
-        createMessage('Mode change failed - check POI connections', 'error');
-    }
-}
+// Flush state to localStorage before app closes
+window.addEventListener('beforeunload', () => saveState());
 
 // Initialize App
 function init() {
@@ -531,31 +748,55 @@ function init() {
     setupTabNavigation();
     setupSwipeDetection();
     initializeNetworkDiscovery();
-    setupImageHandlers();
+    try {
+        setupImageHandlers();
+    } catch(e) {
+        console.warn('setupImageHandlers failed:', e);
+    }
     initializeModal();
     initializeEventListeners();
     initializeSliders();
     initializeStatusCheck();
-    fetchInitialPixels();
-    refreshAllImages();
+    try {
+        fetchInitialPixels();
+    } catch(e) {
+        console.warn('fetchInitialPixels failed:', e);
+    }
+    try {
+        refreshAllImages();
+    } catch(e) {
+        console.warn('refreshAllImages failed:', e);
+    }
     initializeFetchButton();
     initializeCustomCompressionModal();
 }
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    const savedIPs = JSON.parse(localStorage.getItem('poiIPs') || '{}');
+    // Load saved state to pre-initialize critical values before init()
+    let savedState = {};
+    try {
+        const savedString = localStorage.getItem('poiState');
+        if (savedString) savedState = JSON.parse(savedString);
+    } catch(e) {
+        console.warn('Failed to parse saved state in DOMContentLoaded:', e);
+    }
 
-    if (savedIPs.routerMode) {
+    if (savedState.poiIPs?.routerMode) {
         document.getElementById('routerModeCheckbox').checked = true;
-        state.poiIPs.mainIP = savedIPs.mainIP || "192.168.1.1";
-        state.poiIPs.auxIP = savedIPs.auxIP || "192.168.1.78";
+        state.poiIPs.mainIP = savedState.poiIPs.mainIP || "192.168.1.1";
+        state.poiIPs.auxIP = savedState.poiIPs.auxIP || "192.168.1.78";
+        state.poiIPs.routerMode = true;
     }
 
     init();
     initializePatternControls();
     initializeSync();
-    setupImageHandlers();
+    try {
+        setupImageHandlers();
+    } catch(e) {
+        console.warn('setupImageHandlers failed:', e);
+    }
 
     // Initialize sliders after DOM is ready
     setTimeout(() => {

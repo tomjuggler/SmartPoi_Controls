@@ -169,14 +169,26 @@ async function processAndUploadZip() {
         
         let mainAvailable = false;
         let auxAvailable = false;
+        let threeAvailable = false;
+        let fourAvailable = false;
+        let fiveAvailable = false;
+        let sixAvailable = false;
+        let sevenAvailable = false;
+        let eightAvailable = false;
 
         // Connectivity check
-        [mainAvailable, auxAvailable] = await Promise.all([
+        [mainAvailable, auxAvailable, threeAvailable, fourAvailable, fiveAvailable, sixAvailable, sevenAvailable, eightAvailable] = await Promise.all([
             verifyPoiConnectionMB(state.poiIPs.mainIP),
-            verifyPoiConnectionMB(state.poiIPs.auxIP)
+            verifyPoiConnectionMB(state.poiIPs.auxIP),
+            verifyPoiConnectionMB(state.poiIPs.poiThreeIP),
+            verifyPoiConnectionMB(state.poiIPs.poiFourIP),
+            verifyPoiConnectionMB(state.poiIPs.poiFiveIP),
+            verifyPoiConnectionMB(state.poiIPs.poiSixIP),
+            verifyPoiConnectionMB(state.poiIPs.poiSevenIP),
+            verifyPoiConnectionMB(state.poiIPs.poiEightIP)
         ]);
 
-        if (!mainAvailable && !auxAvailable) {
+        if (!mainAvailable && !auxAvailable && !threeAvailable && !fourAvailable && !fiveAvailable && !sixAvailable && !sevenAvailable && !eightAvailable) {
             throw new Error("No POIs available for upload");
         }
 
@@ -196,6 +208,24 @@ async function processAndUploadZip() {
             if (auxAvailable) {
                 timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.auxIP, 'Aux POI'));
             }
+            if (threeAvailable) {
+                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiThreeIP, 'POI 3'));
+            }
+            if (fourAvailable) {
+                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiFourIP, 'POI 4'));
+            }
+            if (fiveAvailable) {
+                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiFiveIP, 'POI 5'));
+            }
+            if (sixAvailable) {
+                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiSixIP, 'POI 6'));
+            }
+            if (sevenAvailable) {
+                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiSevenIP, 'POI 7'));
+            }
+            if (eightAvailable) {
+                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiEightIP, 'POI 8'));
+            }
             await Promise.allSettled(timingPromises); // Don't let timings failure break the flow
         }
 
@@ -208,6 +238,24 @@ async function processAndUploadZip() {
         }
         if (auxAvailable) {
             uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.auxIP, 'Aux POI'));
+        }
+        if (threeAvailable) {
+            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiThreeIP, 'POI 3'));
+        }
+        if (fourAvailable) {
+            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiFourIP, 'POI 4'));
+        }
+        if (fiveAvailable) {
+            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiFiveIP, 'POI 5'));
+        }
+        if (sixAvailable) {
+            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiSixIP, 'POI 6'));
+        }
+        if (sevenAvailable) {
+            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiSevenIP, 'POI 7'));
+        }
+        if (eightAvailable) {
+            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiEightIP, 'POI 8'));
         }
 
         await Promise.all(uploadPromises);

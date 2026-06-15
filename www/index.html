@@ -33,8 +33,14 @@
                 <h2 class="section-title">Poi Controls</h2>
 
                 <div class="status-indicators">
-                    <div id="mainStatus" class="status-indicator online">Main POI: Online</div>
-                    <div id="auxStatus" class="status-indicator online">Aux POI: Online</div>
+                    <div id="mainStatus" class="status-indicator checking">Main POI: Checking...</div>
+                    <div id="auxStatus" class="status-indicator checking">Aux POI: Checking...</div>
+                    <div id="poiThreeStatus" class="status-indicator offline router-only">POI 3: Offline</div>
+                    <div id="poiFourStatus" class="status-indicator offline router-only">POI 4: Offline</div>
+                    <div id="poiFiveStatus" class="status-indicator offline router-only">POI 5: Offline</div>
+                    <div id="poiSixStatus" class="status-indicator offline router-only">POI 6: Offline</div>
+                    <div id="poiSevenStatus" class="status-indicator offline router-only">POI 7: Offline</div>
+                    <div id="poiEightStatus" class="status-indicator offline router-only">POI 8: Offline</div>
                 </div>
 
                 <div class="control-block">
@@ -99,6 +105,39 @@
                                     <button onclick="setAuxIp()">Set Aux</button>
                                     <span id="auxIpError" class="error-message"></span>
                                 </div>
+                                <div class="manual-ip-row router-only" style="opacity: 0.7;">
+                                    <input type="text" id="manualPoiThreeIp" placeholder="0.0.0.0" value="">
+                                    <button onclick="setPoiThreeIp()">Set POI 3</button>
+                                    <span id="poiThreeIpError" class="error-message"></span>
+                                </div>
+                                <div class="manual-ip-row router-only" style="opacity: 0.7;">
+                                    <input type="text" id="manualPoiFourIp" placeholder="0.0.0.0" value="">
+                                    <button onclick="setPoiFourIp()">Set POI 4</button>
+                                    <span id="poiFourIpError" class="error-message"></span>
+                                </div>
+                                <div class="manual-ip-row router-only" style="opacity: 0.7;">
+                                    <input type="text" id="manualPoiFiveIp" placeholder="0.0.0.0" value="">
+                                    <button onclick="setPoiFiveIp()">Set POI 5</button>
+                                    <span id="poiFiveIpError" class="error-message"></span>
+                                </div>
+                                <div class="manual-ip-row router-only" style="opacity: 0.7;">
+                                    <input type="text" id="manualPoiSixIp" placeholder="0.0.0.0" value="">
+                                    <button onclick="setPoiSixIp()">Set POI 6</button>
+                                    <span id="poiSixIpError" class="error-message"></span>
+                                </div>
+                                <div class="manual-ip-row router-only" style="opacity: 0.7;">
+                                    <input type="text" id="manualPoiSevenIp" placeholder="0.0.0.0" value="">
+                                    <button onclick="setPoiSevenIp()">Set POI 7</button>
+                                    <span id="poiSevenIpError" class="error-message"></span>
+                                </div>
+                                <div class="manual-ip-row router-only" style="opacity: 0.7;">
+                                    <input type="text" id="manualPoiEightIp" placeholder="0.0.0.0" value="">
+                                    <button onclick="setPoiEightIp()">Set POI 8</button>
+                                    <span id="poiEightIpError" class="error-message"></span>
+                                </div>
+                                <div class="router-only" style="font-size: 0.85em; color: #888; margin-top: 6px; padding-left: 4px;">
+                                    <i>Additional POIs (optional, Router Mode only)</i>
+                                </div>
                             </div>
                         </div>
 
@@ -136,6 +175,84 @@
                                 <p>Channel: <span id="channelTwo">N/A</span></p>
                                 <p>Pattern: <span id="patternTwo">N/A</span></p>
                                 <p>Pixels: <span id="pixelsTwo">?</span></p>
+                            </div>
+                            <div class="poi-status-group router-only">
+                                <h4>POI 3:</h4>
+                                <p>Router: <span id="routerThree">N/A</span></p>
+                                <p>Password: 
+                                    <span class="password-container">
+                                        <span id="passwordThree" class="password-text">N/A</span>
+                                        <span class="toggle-password">👁</span>
+                                    </span>
+                                </p>
+                                <p>Channel: <span id="channelThree">N/A</span></p>
+                                <p>Pattern: <span id="patternThree">N/A</span></p>
+                                <p>Pixels: <span id="pixelsThree">?</span></p>
+                            </div>
+                            <div class="poi-status-group router-only">
+                                <h4>POI 4:</h4>
+                                <p>Router: <span id="routerFour">N/A</span></p>
+                                <p>Password: 
+                                    <span class="password-container">
+                                        <span id="passwordFour" class="password-text">N/A</span>
+                                        <span class="toggle-password">👁</span>
+                                    </span>
+                                </p>
+                                <p>Channel: <span id="channelFour">N/A</span></p>
+                                <p>Pattern: <span id="patternFour">N/A</span></p>
+                                <p>Pixels: <span id="pixelsFour">?</span></p>
+                            </div>
+                            <div class="poi-status-group router-only">
+                                <h4>POI 5:</h4>
+                                <p>Router: <span id="routerFive">N/A</span></p>
+                                <p>Password: 
+                                    <span class="password-container">
+                                        <span id="passwordFive" class="password-text">N/A</span>
+                                        <span class="toggle-password">👁</span>
+                                    </span>
+                                </p>
+                                <p>Channel: <span id="channelFive">N/A</span></p>
+                                <p>Pattern: <span id="patternFive">N/A</span></p>
+                                <p>Pixels: <span id="pixelsFive">?</span></p>
+                            </div>
+                            <div class="poi-status-group router-only">
+                                <h4>POI 6:</h4>
+                                <p>Router: <span id="routerSix">N/A</span></p>
+                                <p>Password: 
+                                    <span class="password-container">
+                                        <span id="passwordSix" class="password-text">N/A</span>
+                                        <span class="toggle-password">👁</span>
+                                    </span>
+                                </p>
+                                <p>Channel: <span id="channelSix">N/A</span></p>
+                                <p>Pattern: <span id="patternSix">N/A</span></p>
+                                <p>Pixels: <span id="pixelsSix">?</span></p>
+                            </div>
+                            <div class="poi-status-group router-only">
+                                <h4>POI 7:</h4>
+                                <p>Router: <span id="routerSeven">N/A</span></p>
+                                <p>Password: 
+                                    <span class="password-container">
+                                        <span id="passwordSeven" class="password-text">N/A</span>
+                                        <span class="toggle-password">👁</span>
+                                    </span>
+                                </p>
+                                <p>Channel: <span id="channelSeven">N/A</span></p>
+                                <p>Pattern: <span id="patternSeven">N/A</span></p>
+                                <p>Pixels: <span id="pixelsSeven">?</span></p>
+                            </div>
+                            <div class="poi-status-group router-only">
+                                <h4>POI 8:</h4>
+                                <p>Router: <span id="routerEight">N/A</span></p>
+                                <p>Password: 
+                                    <span class="password-container">
+                                        <span id="passwordEight" class="password-text">N/A</span>
+                                        <span class="toggle-password">👁</span>
+                                    </span>
+                                </p>
+                                <p>Channel: <span id="channelEight">N/A</span></p>
+                                <p>Pattern: <span id="patternEight">N/A</span></p>
+                                <p>Pixels: <span id="pixelsEight">?</span></p>
                             </div>
                         </div>
                     </div>
@@ -191,6 +308,19 @@
                         <span class="alert-indicator" id="get-files-one-indicator"></span>
                         <button class="dark-button" onclick="getFilesTwo()">Fetch Aux Poi Images</button>
                         <span class="alert-indicator" id="get-files-two-indicator"></span>
+
+                        <button class="dark-button router-only" onclick="getFilesThree()">Fetch POI 3 Images</button>
+                        <span class="alert-indicator router-only" id="get-files-three-indicator"></span>
+                        <button class="dark-button router-only" onclick="getFilesFour()">Fetch POI 4 Images</button>
+                        <span class="alert-indicator router-only" id="get-files-four-indicator"></span>
+                        <button class="dark-button router-only" onclick="getFilesFive()">Fetch POI 5 Images</button>
+                        <span class="alert-indicator router-only" id="get-files-five-indicator"></span>
+                        <button class="dark-button router-only" onclick="getFilesSix()">Fetch POI 6 Images</button>
+                        <span class="alert-indicator router-only" id="get-files-six-indicator"></span>
+                        <button class="dark-button router-only" onclick="getFilesSeven()">Fetch POI 7 Images</button>
+                        <span class="alert-indicator router-only" id="get-files-seven-indicator"></span>
+                        <button class="dark-button router-only" onclick="getFilesEight()">Fetch POI 8 Images</button>
+                        <span class="alert-indicator router-only" id="get-files-eight-indicator"></span>
                         <button class="dark-button" id="ws_apaBtn">WS2812?</button>
                         <span class="alert-indicator" id="ws_apa_indicator">Current: WS2812</span>
                     </div>
@@ -206,6 +336,30 @@
                     <div class="poi-images">
                         <h3 class="section-title">Aux Poi</h3>
                         <div id="auxImageGrid" class="image-grid-container"></div>
+                    </div>
+                    <div class="poi-images router-only">
+                        <h3 class="section-title">POI 3</h3>
+                        <div id="threeImageGrid" class="image-grid-container"></div>
+                    </div>
+                    <div class="poi-images router-only">
+                        <h3 class="section-title">POI 4</h3>
+                        <div id="fourImageGrid" class="image-grid-container"></div>
+                    </div>
+                    <div class="poi-images router-only">
+                        <h3 class="section-title">POI 5</h3>
+                        <div id="fiveImageGrid" class="image-grid-container"></div>
+                    </div>
+                    <div class="poi-images router-only">
+                        <h3 class="section-title">POI 6</h3>
+                        <div id="sixImageGrid" class="image-grid-container"></div>
+                    </div>
+                    <div class="poi-images router-only">
+                        <h3 class="section-title">POI 7</h3>
+                        <div id="sevenImageGrid" class="image-grid-container"></div>
+                    </div>
+                    <div class="poi-images router-only">
+                        <h3 class="section-title">POI 8</h3>
+                        <div id="eightImageGrid" class="image-grid-container"></div>
                     </div>
                 </div>
 
@@ -378,6 +532,12 @@
                 <div class="list-controls">
                     <button class="dark-button" onclick="getFileList()">Get Main POI Files</button>
                     <button class="dark-button" onclick="getFileListTwo()">Get Aux POI Files</button>
+                    <button class="dark-button router-only" onclick="getFileListThree()">Get POI 3 Files</button>
+                    <button class="dark-button router-only" onclick="getFileListFour()">Get POI 4 Files</button>
+                    <button class="dark-button router-only" onclick="getFileListFive()">Get POI 5 Files</button>
+                    <button class="dark-button router-only" onclick="getFileListSix()">Get POI 6 Files</button>
+                    <button class="dark-button router-only" onclick="getFileListSeven()">Get POI 7 Files</button>
+                    <button class="dark-button router-only" onclick="getFileListEight()">Get POI 8 Files</button>
                 </div>
 
                 <div class="list-containers">
@@ -388,6 +548,30 @@
                     <div class="list-box">
                         <h3>Aux POI Files</h3>
                         <textarea id="fileListTextAreatwo" readonly></textarea>
+                    </div>
+                    <div class="list-box router-only">
+                        <h3>POI 3 Files</h3>
+                        <textarea id="fileListTextAreaThree" readonly></textarea>
+                    </div>
+                    <div class="list-box router-only">
+                        <h3>POI 4 Files</h3>
+                        <textarea id="fileListTextAreaFour" readonly></textarea>
+                    </div>
+                    <div class="list-box router-only">
+                        <h3>POI 5 Files</h3>
+                        <textarea id="fileListTextAreaFive" readonly></textarea>
+                    </div>
+                    <div class="list-box router-only">
+                        <h3>POI 6 Files</h3>
+                        <textarea id="fileListTextAreaSix" readonly></textarea>
+                    </div>
+                    <div class="list-box router-only">
+                        <h3>POI 7 Files</h3>
+                        <textarea id="fileListTextAreaSeven" readonly></textarea>
+                    </div>
+                    <div class="list-box router-only">
+                        <h3>POI 8 Files</h3>
+                        <textarea id="fileListTextAreaEight" readonly></textarea>
                     </div>
                 </div>
             </div>

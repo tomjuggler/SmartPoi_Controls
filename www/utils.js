@@ -52,10 +52,12 @@ function handleCriticalError(error) {
     });
 }
 
-async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true) {
+async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true, threeAvailable = false, fourAvailable = false) {
   const restoreTasks = [];
   if(mainAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.mainIP));
   if(auxAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.auxIP));
+  if(threeAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiThreeIP));
+  if(fourAvailable) restoreTasks.push(setPatternSafe(originalPattern, state.poiIPs.poiFourIP));
   
   await Promise.allSettled(restoreTasks);
   await delay(1000); // Final safety delay
@@ -107,6 +109,18 @@ function updateNetworkModeDisplay() {
     // Update placeholders to current values
     document.getElementById('manualMainIp').placeholder = state.poiIPs.mainIP;
     document.getElementById('manualAuxIp').placeholder = state.poiIPs.auxIP;
+    document.getElementById('manualPoiThreeIp').placeholder = state.poiIPs.poiThreeIP;
+    document.getElementById('manualPoiFourIp').placeholder = state.poiIPs.poiFourIP;
+    document.getElementById('manualPoiFiveIp').placeholder = state.poiIPs.poiFiveIP;
+    document.getElementById('manualPoiSixIp').placeholder = state.poiIPs.poiSixIP;
+    document.getElementById('manualPoiSevenIp').placeholder = state.poiIPs.poiSevenIP;
+    document.getElementById('manualPoiEightIp').placeholder = state.poiIPs.poiEightIP;
+    
+    // Show/hide router-only elements based on mode
+    const routerOnlyElements = document.querySelectorAll('.router-only');
+    routerOnlyElements.forEach(el => {
+        el.style.display = state.poiIPs.routerMode ? 'block' : 'none';
+    });
 }
 
 function updateStripTypeIndicator() {
@@ -153,17 +167,64 @@ function updateAllPixelDisplays(pixelCount) {
 }
 
 function updatePixelDisplayForPoi(poiType, pixelCount) {
-    // Update display for specific POI (main or aux)
+    // Update display for specific POI (main, aux, three, or four)
+    const displayCount = (pixelCount === null || pixelCount === undefined || pixelCount === '?') ? '?' : pixelCount;
+    
     if (poiType === 'main') {
         state.settings.pixels = pixelCount;
         updateAllPixelDisplays(pixelCount);
     } else if (poiType === 'aux') {
-        // Handle unavailable pixel count for aux POI
-        const displayCount = (pixelCount === null || pixelCount === undefined || pixelCount === '?') ? '?' : pixelCount;
         state.settings.pixelsTwo = pixelCount;
-        const pixelsTwoEl = document.getElementById('pixelsTwo');
-        if (pixelsTwoEl) pixelsTwoEl.textContent = displayCount;
+        const el = document.getElementById('pixelsTwo');
+        if (el) el.textContent = displayCount;
+    } else if (poiType === 'three') {
+        state.settings.pixelsThree = pixelCount;
+        const el = document.getElementById('pixelsThree');
+        if (el) el.textContent = displayCount;
+    } else if (poiType === 'four') {
+        state.settings.pixelsFour = pixelCount;
+        const el = document.getElementById('pixelsFour');
+        if (el) el.textContent = displayCount;
+    } else if (poiType === 'five') {
+        state.settings.pixelsFive = pixelCount;
+        const elFive = document.getElementById('pixelsFive');
+        if (elFive) elFive.textContent = displayCount;
+    } else if (poiType === 'six') {
+        state.settings.pixelsSix = pixelCount;
+        const elSix = document.getElementById('pixelsSix');
+        if (elSix) elSix.textContent = displayCount;
+    } else if (poiType === 'seven') {
+        state.settings.pixelsSeven = pixelCount;
+        const elSeven = document.getElementById('pixelsSeven');
+        if (elSeven) elSeven.textContent = displayCount;
+    } else if (poiType === 'eight') {
+        state.settings.pixelsEight = pixelCount;
+        const elEight = document.getElementById('pixelsEight');
+        if (elEight) elEight.textContent = displayCount;
     }
+}
+
+function getPoiIPs() {
+    const ips = [state.poiIPs.mainIP, state.poiIPs.auxIP];
+    if (state.poiIPs.routerMode && state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiThreeIP);
+    }
+    if (state.poiIPs.routerMode && state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiFourIP);
+    }
+    if (state.poiIPs.routerMode && state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiFiveIP);
+    }
+    if (state.poiIPs.routerMode && state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiSixIP);
+    }
+    if (state.poiIPs.routerMode && state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiSevenIP);
+    }
+    if (state.poiIPs.routerMode && state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0') {
+        ips.push(state.poiIPs.poiEightIP);
+    }
+    return ips;
 }
 
 function sliderToValue(sliderPercent) {
@@ -202,6 +263,12 @@ function saveState() {
         poiIPs: {
             mainIP: state.poiIPs.mainIP,
             auxIP: state.poiIPs.auxIP,
+            poiThreeIP: state.poiIPs.poiThreeIP,
+            poiFourIP: state.poiIPs.poiFourIP,
+            poiFiveIP: state.poiIPs.poiFiveIP,
+            poiSixIP: state.poiIPs.poiSixIP,
+            poiSevenIP: state.poiIPs.poiSevenIP,
+            poiEightIP: state.poiIPs.poiEightIP,
             routerMode: state.poiIPs.routerMode,
             savedRouterIPs: state.poiIPs.savedRouterIPs,
             subnet: state.poiIPs.subnet

@@ -1,5 +1,5 @@
 // Shared Image Processing Function
-async function processImageFile(file) {
+async function processImageFile(file, pixelCount) {
     const reader = new FileReader();
     
     return new Promise((resolve, reject) => {
@@ -18,13 +18,13 @@ async function processImageFile(file) {
                 }
                 
                 const aspectRatio = rotatedWidth / (rotatedHeight * compressionFactor);
-                const targetHeight = Math.floor(state.settings.pixels / aspectRatio);
+                const targetPixels = pixelCount || state.settings.pixels;
+                const targetHeight = Math.floor(targetPixels / aspectRatio);
                 
                 const processed = rotatedImage.resize(
-                    state.settings.pixels,  // width
+                    targetPixels,  // width
                     targetHeight            // height
                 );
-
                 const binaryData = [];
                 processed.scan(0, 0, processed.bitmap.width, processed.bitmap.height, 
                     (x, y, idx) => {
@@ -132,7 +132,17 @@ window.decompressAndDisplay = async function(ip, fileName) {
         imgElement.style.height = '100%';
 
         // Find and replace existing image
-        const containerId = ip === state.poiIPs.mainIP ? 'mainImageGrid' : 'auxImageGrid';
+        // Map IP to the correct image grid container
+        let containerId;
+        if (ip === state.poiIPs.mainIP) containerId = 'mainImageGrid';
+        else if (ip === state.poiIPs.auxIP) containerId = 'auxImageGrid';
+        else if (ip === state.poiIPs.poiThreeIP) containerId = 'threeImageGrid';
+        else if (ip === state.poiIPs.poiFourIP) containerId = 'fourImageGrid';
+        else if (ip === state.poiIPs.poiFiveIP) containerId = 'fiveImageGrid';
+        else if (ip === state.poiIPs.poiSixIP) containerId = 'sixImageGrid';
+        else if (ip === state.poiIPs.poiSevenIP) containerId = 'sevenImageGrid';
+        else if (ip === state.poiIPs.poiEightIP) containerId = 'eightImageGrid';
+        else containerId = 'auxImageGrid';
         const container = document.getElementById(containerId);
         const existingImages = container.getElementsByClassName('poi-image');
         
