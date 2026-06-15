@@ -185,14 +185,19 @@ async function processAndUploadZip() {
         }
 
         // Initialize TimelinePlayer immediately after data extraction (before upload)
+        console.log('[MagicBridge] Early TimelinePlayer init check: timelineData=', !!timelineData, 'TimelinePlayer=', typeof TimelinePlayer, 'loadTimelineData=', typeof (typeof TimelinePlayer !== 'undefined' ? TimelinePlayer.loadTimelineData : 'N/A'));
         if (timelineData && typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
             try {
+                console.log('[MagicBridge] → Calling TimelinePlayer.loadTimelineData()...');
                 TimelinePlayer.setAudioUrl(mp3BlobUrl);
                 TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
                 timelineReady = true;
+                console.log('[MagicBridge] ✓ TimelinePlayer init succeeded');
             } catch (tlErr) {
-                console.error('Failed to initialize TimelinePlayer:', tlErr);
+                console.error('[MagicBridge] ✗ Failed to initialize TimelinePlayer:', tlErr);
             }
+        } else {
+            console.warn('[MagicBridge] ⏱ Skipping TimelinePlayer init (conditions not met)');
         }
         if (files.length === 0) {
             throw new Error('No .bin files found in ZIP archive');

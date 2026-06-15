@@ -106,6 +106,7 @@ const TimelinePlayer = (function() {
      * Called from magic-bridge.js after ZIP is processed
      */
     async function loadTimelineData(timelineData, binFilesArray) {
+        console.log('[TimelinePlayer] loadTimelineData called - images_ordered:', timelineData?.images_ordered?.length, 'times:', timelineData?.times?.length, 'binFiles:', binFilesArray?.length);
         _state.timelineId = timelineData.timeline_id || null;
         _state.timelineTitle = timelineData.timeline_title || 'Untitled Timeline';
         _state.imagesOrdered = timelineData.images_ordered || [];
@@ -524,8 +525,13 @@ const TimelinePlayer = (function() {
             }
         }
         if (allSkipped) {
-            console.log(`[TimelinePlayer] ⏱ Skipping pattern ${pattern} (sent recently, cooldown ${SEND_COOLDOWN}ms)`);
+            console.log(`[TimelinePlayer] ⏱ Skipping pattern ${pattern} (all IPs on cooldown, ${SEND_COOLDOWN}ms)`);
             return;
+        }
+        
+        // Mark all IPs as sent IMMEDIATELY (before any async work) to prevent duplicate sends
+        for (const ip of ips) {
+            _lastSendTime[`${pattern}_${ip}`] = now;
         }
         
         console.log(`[TimelinePlayer] Sending pattern ${pattern} (image index ${index}) to ${ips.length} POI(s):`, ips);
@@ -535,18 +541,6 @@ const TimelinePlayer = (function() {
         
         // Send simultaneously to all POIs for sync
         Promise.all(ips.map(async (ip) => {
-            const key = `${pattern}_${ip}`;
-            const lastTime = _lastSendTime[key] || 0;
-            
-            // Per-POI rate limit check (extra safety)
-            if (now - lastTime < SEND_COOLDOWN) {
-                console.log(`[TimelinePlayer] ⏱ Skipping ${ip} for pattern ${pattern} (cooldown)`);
-                return;
-            }
-            
-            // Mark as sent BEFORE the request so concurrent calls see it
-            _lastSendTime[key] = now;
-            
             const url = `http://${ip}/pattern?patternChooserChange=${pattern}`;
             console.log(`[TimelinePlayer] → GET ${url}`);
             
