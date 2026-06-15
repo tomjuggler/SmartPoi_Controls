@@ -205,18 +205,34 @@ async function processAndUploadZip() {
         let sevenAvailable = false;
         let eightAvailable = false;
 
-        // Connectivity check
-        [mainAvailable, auxAvailable, threeAvailable, fourAvailable, fiveAvailable, sixAvailable, sevenAvailable, eightAvailable] = await Promise.all([
-            verifyPoiConnectionMB(state.poiIPs.mainIP),
-            verifyPoiConnectionMB(state.poiIPs.auxIP),
-            verifyPoiConnectionMB(state.poiIPs.poiThreeIP),
-            verifyPoiConnectionMB(state.poiIPs.poiFourIP),
-            verifyPoiConnectionMB(state.poiIPs.poiFiveIP),
-            verifyPoiConnectionMB(state.poiIPs.poiSixIP),
-            verifyPoiConnectionMB(state.poiIPs.poiSevenIP),
-            verifyPoiConnectionMB(state.poiIPs.poiEightIP)
-        ]);
-
+        // Connectivity check - skip unconfigured IPs (0.0.0.0)
+        const isConfigured = (ip) => ip && ip !== '0.0.0.0';
+        
+        const connectivityChecks = [
+            { ip: state.poiIPs.mainIP, setter: (v) => { mainAvailable = v; }, label: 'Main' },
+            { ip: state.poiIPs.auxIP, setter: (v) => { auxAvailable = v; }, label: 'Aux' },
+            { ip: state.poiIPs.poiThreeIP, setter: (v) => { threeAvailable = v; }, label: 'POI 3' },
+            { ip: state.poiIPs.poiFourIP, setter: (v) => { fourAvailable = v; }, label: 'POI 4' },
+            { ip: state.poiIPs.poiFiveIP, setter: (v) => { fiveAvailable = v; }, label: 'POI 5' },
+            { ip: state.poiIPs.poiSixIP, setter: (v) => { sixAvailable = v; }, label: 'POI 6' },
+            { ip: state.poiIPs.poiSevenIP, setter: (v) => { sevenAvailable = v; }, label: 'POI 7' },
+            { ip: state.poiIPs.poiEightIP, setter: (v) => { eightAvailable = v; }, label: 'POI 8' }
+        ];
+        
+        await Promise.all(connectivityChecks.map(async (check) => {
+            if (isConfigured(check.ip)) {
+                try {
+                    const result = await verifyPoiConnectionMB(check.ip);
+                    check.setter(result);
+                } catch (e) {
+                    console.log(`${check.label} (${check.ip}) connectivity check failed`);
+                    check.setter(false);
+                }
+            } else {
+                check.setter(false);
+            }
+        }));
+        
         if (!mainAvailable && !auxAvailable && !threeAvailable && !fourAvailable && !fiveAvailable && !sixAvailable && !sevenAvailable && !eightAvailable) {
             throw new Error("No POIs available for upload");
         }
