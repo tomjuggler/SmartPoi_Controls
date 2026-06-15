@@ -1,4 +1,4 @@
-// Main Application Entry Point
+/* Main Application Entry Point */
 // This file handles core initialization and orchestrates all modular functionality
 
 // Global functions needed for onclick handlers
@@ -821,13 +821,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('magic-bridge-upload').addEventListener('click', toggleMagicBridgeUpload);
     // Initialize clear button
     document.getElementById('magic-bridge-clear').addEventListener('click', clearUpload);
-    // Show clear button when file selected
+    // Show clear button when file selected and preview timeline
     document.getElementById('zip-input').addEventListener('change', () => {
         const clearBtn = document.getElementById('magic-bridge-clear');
         const hasFile = document.getElementById('zip-input').files[0];
         clearBtn.style.display = hasFile ? 'inline-block' : 'none';
         
-        // Reset UI for new file selection
+        // Preview timeline data immediately when file is selected (no upload needed)
         if (hasFile) {
             // Hide file list from previous upload
             document.getElementById('file-list').style.display = 'none';
@@ -839,6 +839,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const uploadBtn = document.getElementById('magic-bridge-upload');
                 uploadBtn.textContent = 'Upload to POI';
             }
+            // Preview the ZIP (extract + show timeline, no upload)
+            if (typeof previewTimelineFromZip === 'function') {
+                previewTimelineFromZip();
+            }
         }
     });
-});

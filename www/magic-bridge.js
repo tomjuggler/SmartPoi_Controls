@@ -484,4 +484,136 @@ function adjustTimingsArray(timingsArray, targetLength) {
     result.push(lastTiming + lastInterval * (result.length - timingsArray.length + 1));
   }
   return result;
+
+
+/**
+ * Preview timeline data from a ZIP file immediately on selection (no upload)
+ * Extracts images.json, .bin data, and audio for TimelinePlayer preview
+ */
+async function previewTimelineFromZip() {
+    const fileInput = document.getElementById('zip-input');
+    const statusEl = document.getElementById('upload-status-standalone');
+    
+    if (!fileInput.files[0]) {
+        console.log('[MagicBridge] No file selected for preview');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+        statusEl.textContent = 'Please select a ZIP file';
+        statusEl.style.color = 'red';
+        return;
+    }
+    
+    console.log('[MagicBridge] Previewing ZIP file:', file.name);
+    statusEl.textContent = 'Reading ZIP for preview...';
+    statusEl.style.color = 'inherit';
+    
+    try {
+        const zip = await JSZip.loadAsync(file);
+        
+        // Parse images.json
+        let timelineData = null;
+        let imageOrder = null;
+        let timingsArray = null;
+        let binArrayBuffers = [];
+        let mp3BlobUrl = null;
+        
+        try {
+            const jsonFile = zip.file("images.json");
+            if (jsonFile) {
+                const jsonContent = await jsonFile.async('text');
+                const jsonData = JSON.parse(jsonContent);
+                timelineData = jsonData;
+                console.log('[MagicBridge] images.json parsed:', jsonData.timeline_title || 'Untitled');
+                
+                if (jsonData.images_ordered && Array.isArray(jsonData.images_ordered)) {
+                    imageOrder = jsonData.images_ordered.map(name => name.split('.')[0]);
+                }
+                if (jsonData.times && Array.isArray(jsonData.times)) {
+                    timingsArray = jsonData.times;
+                }
+            }
+        } catch (e) {
+            console.warn('[MagicBridge] Failed to parse images.json:', e);
+        }
+        
+        if (!timelineData) {
+            statusEl.textContent = 'No images.json found in ZIP';
+            statusEl.style.color = 'orange';
+            return;
+        }
+        
+        // Get .bin files
+        const binFiles = Object.values(zip.files).filter(file => {
+            const fileName = file.name.split('/').pop().trim();
+            return !file.dir && /\.bin$/i.test(fileName) && !file.name.includes('__MACOSX/');
+        });
+        
+        let orderedBinFiles = [];
+        if (imageOrder) {
+            const fileMap = {};
+            binFiles.forEach(file => {
+                const fileName = file.name.split('/').pop().trim();
+                const baseName = fileName.split('.')[0];
+                fileMap[baseName] = file;
+            });
+            orderedBinFiles = imageOrder.map(baseName => fileMap[baseName]).filter(f => f !== null);
+        } else {
+            orderedBinFiles = binFiles.sort((a, b) => a.name.localeCompare(b.name));
+        }
+        
+        // Extract arraybuffers for preview
+        await Promise.all(orderedBinFiles.map(async (file) => {
+            try {
+                const arrayBuffer = await file.async('arraybuffer');
+                binArrayBuffers.push(arrayBuffer);
+            } catch (e) {
+                console.warn('[MagicBridge] Failed to extract binary data from', file.name);
+            }
+        }));
+        
+        // Extract audio
+        try {
+            const audioFile = Object.values(zip.files).find(f => {
+                const name = f.name.split('/').pop().trim().toLowerCase();
+                return !f.dir && (name.endsWith('.mp3') || name.endsWith('.aac') || name.endsWith('.wav'));
+            });
+            if (audioFile) {
+                const audioBlob = await audioFile.async('blob');
+                mp3BlobUrl = URL.createObjectURL(audioBlob);
+                console.log('[MagicBridge] Audio file extracted:', audioFile.name);
+                statusEl.textContent += ' Audio found.';
+            }
+        } catch (e) {
+            console.warn('[MagicBridge] No audio extracted');
+        }
+        
+        statusEl.textContent = `Loaded ${binArrayBuffers.length} images. Initializing timeline...`;
+        
+        // Initialize TimelinePlayer
+        if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
+            try {
+                TimelinePlayer.setAudioUrl(mp3BlobUrl);
+                TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
+                console.log('[MagicBridge] TimelinePlayer initialized from ZIP preview');
+                statusEl.textContent = `Timeline ready: ${binArrayBuffers.length} images loaded.`;
+                statusEl.style.color = '#90c695';
+            } catch (tlErr) {
+                console.error('[MagicBridge] TimelinePlayer init failed:', tlErr);
+                statusEl.textContent = 'Timeline init failed: ' + tlErr.message;
+                statusEl.style.color = 'red';
+            }
+        } else {
+            console.warn('[MagicBridge] TimelinePlayer not available');
+            statusEl.textContent = 'TimelinePlayer not available';
+        }
+        
+    } catch (error) {
+        console.error('[MagicBridge] ZIP preview failed:', error);
+        statusEl.textContent = 'Failed to read ZIP: ' + error.message;
+        statusEl.style.color = 'red';
+    }
 }
+};
