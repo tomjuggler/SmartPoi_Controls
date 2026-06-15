@@ -731,6 +731,11 @@ function loadTabContent(tabName) {
         loadTextTabContent();
     } else if (tabName === 'files') {
         // Initialize any list-specific functionality
+    } else if (tabName === 'magic-bridge') {
+        // Initialize TimelinePlayer if not already done
+        if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.init === 'function') {
+            TimelinePlayer.init();
+        }
     }
 }
 

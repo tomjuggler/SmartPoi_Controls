@@ -87,14 +87,18 @@ async function processAndUploadZip() {
         // Read and process ZIP file
         const zip = await JSZip.loadAsync(fileInput.files[0]);
 
-        // Check for images.json and parse it to get the image order and timings
+        // Check for images.json and parse it to get the image order, timings, and full metadata
         let imageOrder = null;
         let timingsArray = null;
+        let timelineData = null; // Full JSON data for TimelinePlayer
+        let binArrayBuffers = []; // Raw binary data for local preview
+        let mp3BlobUrl = null; // Audio blob URL
         try {
             const jsonFile = zip.file("images.json");
             if (jsonFile) {
                 const jsonContent = await jsonFile.async('text');
                 const jsonData = JSON.parse(jsonContent);
+                timelineData = jsonData; // Store full data for player
                 if (jsonData.images_ordered && Array.isArray(jsonData.images_ordered)) {
                     imageOrder = jsonData.images_ordered.map(name => {
                         // Extract the name part before the first dot (e.g., "image1" from "image1.jpg")
@@ -144,15 +148,40 @@ async function processAndUploadZip() {
         }
 
         // Create the File objects with original .bin filenames
+        // Create the File objects with original .bin filenames AND capture raw data for TimelinePlayer
         const files = await Promise.all(
             orderedBinFiles.map(async (file) => {
                 const blob = await file.async('blob');
                 const originalFileName = file.name.split('/').pop().trim();
+                
+                // Capture raw binary data for TimelinePlayer local preview
+                try {
+                    const arrayBuffer = await file.async('arraybuffer');
+                    binArrayBuffers.push(arrayBuffer);
+                } catch (e) {
+                    console.warn('Failed to capture binary data for', originalFileName);
+                }
+                
                 return new File([blob], originalFileName, {
                     type: 'application/octet-stream'
                 });
             })
         );
+        
+        // Extract mp3 file for audio playback
+        try {
+            const audioFile = Object.values(zip.files).find(file => {
+                const fileName = file.name.split('/').pop().trim().toLowerCase();
+                return !file.dir && (fileName.endsWith('.mp3') || fileName.endsWith('.aac') || fileName.endsWith('.wav'));
+            });
+            if (audioFile) {
+                const audioBlob = await audioFile.async('blob');
+                mp3BlobUrl = URL.createObjectURL(audioBlob);
+                console.log('Audio file extracted:', audioFile.name);
+            }
+        } catch (e) {
+            console.warn('No audio file found in ZIP or failed to extract');
+        }
 
         if (files.length === 0) {
             throw new Error('No .bin files found in ZIP archive');
@@ -263,6 +292,16 @@ async function processAndUploadZip() {
         statusEl.textContent = 'Upload completed successfully!';
         statusEl.style.color = 'green';
         uploadSuccess = true;
+        
+        // Initialize TimelinePlayer with the processed data
+        if (timelineData && typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
+            try {
+                TimelinePlayer.setAudioUrl(mp3BlobUrl);
+                TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
+            } catch (tlErr) {
+                console.error('Failed to initialize TimelinePlayer:', tlErr);
+            }
+        }
     } catch (error) {
         console.error('Upload error:', error);
         statusEl.textContent = `Upload failed: ${error.message}`;
