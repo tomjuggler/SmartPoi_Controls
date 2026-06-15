@@ -496,6 +496,10 @@ const TimelinePlayer = (function() {
      * Send pattern command to all connected POIs
      * Uses the established /pattern?patternChooserChange=${index} endpoint
      */
+    // Rate limiter: prevent sending the same pattern more than once per interval
+    const _lastSendTime = {}; // { 'pattern_ip': timestamp }
+    const SEND_COOLDOWN = 800; // ms - minimum gap between sends of same pattern to same POI
+    
     function sendPatternToPOIs(index) {
         const pattern = index + 8; // Pattern 8 = a.bin (index 0), 9 = b.bin (index 1), etc. Matches Image Management
         
@@ -508,6 +512,22 @@ const TimelinePlayer = (function() {
             return;
         }
         
+        // Rate limit check: skip if we already sent this pattern to these IPs recently
+        const now = Date.now();
+        let allSkipped = true;
+        for (const ip of ips) {
+            const key = `${pattern}_${ip}`;
+            const lastTime = _lastSendTime[key] || 0;
+            if (now - lastTime >= SEND_COOLDOWN) {
+                allSkipped = false;
+                break;
+            }
+        }
+        if (allSkipped) {
+            console.log(`[TimelinePlayer] ⏱ Skipping pattern ${pattern} (sent recently, cooldown ${SEND_COOLDOWN}ms)`);
+            return;
+        }
+        
         console.log(`[TimelinePlayer] Sending pattern ${pattern} (image index ${index}) to ${ips.length} POI(s):`, ips);
         
         let successCount = 0;
@@ -515,6 +535,18 @@ const TimelinePlayer = (function() {
         
         // Send simultaneously to all POIs for sync
         Promise.all(ips.map(async (ip) => {
+            const key = `${pattern}_${ip}`;
+            const lastTime = _lastSendTime[key] || 0;
+            
+            // Per-POI rate limit check (extra safety)
+            if (now - lastTime < SEND_COOLDOWN) {
+                console.log(`[TimelinePlayer] ⏱ Skipping ${ip} for pattern ${pattern} (cooldown)`);
+                return;
+            }
+            
+            // Mark as sent BEFORE the request so concurrent calls see it
+            _lastSendTime[key] = now;
+            
             const url = `http://${ip}/pattern?patternChooserChange=${pattern}`;
             console.log(`[TimelinePlayer] → GET ${url}`);
             
