@@ -63,6 +63,20 @@ const TimelinePlayer = (function() {
     function init() {
         cacheElements();
         setupEventListeners();
+        
+        // Show the timeline section framework immediately (visible whenever tab is active)
+        const section = E.section();
+        if (section) {
+            section.style.display = 'block';
+            // Show placeholder if no data loaded yet
+            if (!_state.times || _state.times.length === 0) {
+                showStatus('Load a timeline ZIP above and click "Upload to POI" to start', 'info');
+            }
+        }
+        
+        // Check POI connectivity
+        checkPoiConnectivity();
+        
         console.log('TimelinePlayer initialized');
     }
 
