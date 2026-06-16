@@ -532,20 +532,25 @@ async function previewTimelineFromZip() {
         }
         
         // Extract arraybuffers for TimelinePlayer AND create File objects for upload cache
-        const uploadFiles = await Promise.all(orderedBinFiles.map(async (file) => {
+        const uploadFiles = (await Promise.all(orderedBinFiles.map(async (file) => {
             try {
                 const arrayBuffer = await file.async('arraybuffer');
-                binArrayBuffers.push(arrayBuffer);
+                if (arrayBuffer) binArrayBuffers.push(arrayBuffer);
             } catch (e) {
                 console.warn('[MagicBridge] Failed to extract binary data from', file.name);
             }
-            // Also create File object for upload
-            const blob = await file.async('blob');
-            const originalFileName = file.name.split('/').pop().trim();
-            return new File([blob], originalFileName, {
-                type: 'application/octet-stream'
-            });
-        }));
+            // Also create File object for upload (with its own error handling)
+            try {
+                const blob = await file.async('blob');
+                const originalFileName = file.name.split('/').pop().trim();
+                return new File([blob], originalFileName, {
+                    type: 'application/octet-stream'
+                });
+            } catch (e) {
+                console.warn('[MagicBridge] Failed to create blob from', file.name, e);
+                return null;
+            }
+        }))).filter(f => f !== null);
         
         if (uploadFiles.length === 0) {
             throw new Error('No .bin files found in ZIP archive');
@@ -587,7 +592,8 @@ async function previewTimelineFromZip() {
         if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
             try {
                 TimelinePlayer.setAudioUrl(mp3BlobUrl);
-                TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
+                // Await the async loadTimelineData to catch any errors
+                await TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
                 console.log('[MagicBridge] TimelinePlayer initialized from ZIP preview');
                 statusEl.textContent = `Timeline ready: ${binArrayBuffers.length} images loaded.`;
                 statusEl.style.color = '#90c695';
