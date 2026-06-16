@@ -811,7 +811,7 @@ const TimelinePlayer = (function() {
         seekTo: seekTo,
         isPlaying: () => _state.isPlaying,
         getCurrentTime: () => _state.currentTime,
-,
+        getTotalDuration: getTotalDuration,
         reset: reset
     };
 })();
