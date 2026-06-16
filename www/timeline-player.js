@@ -395,6 +395,58 @@ const TimelinePlayer = (function() {
         }
     }
 
+    function reset() {
+        stop();
+        _state.currentTime = 0;
+        _state.currentIndex = -1;
+        _state.timelineId = null;
+        _state.timelineTitle = null;
+        _state.imagesOrdered = [];
+        _state.times = [];
+        _state.mp3Filename = null;
+        _state.mp3Duration = 0;
+        _state.binFiles = [];
+        _state.decompressedImages = [];
+        _state.decompressedPreviews = [];
+        _state.pausedTime = 0;
+        _state.audioUrl = null;
+        _state.totalDuration = 0;
+        
+        // Clear image strip
+        const strip = E.imageStrip();
+        if (strip) strip.innerHTML = '';
+        
+        // Clear time markers
+        const markers = E.timeMarkers();
+        if (markers) markers.innerHTML = '';
+        
+        // Reset time display
+        const timeEl = E.timeDisplay();
+        if (timeEl) timeEl.textContent = '00:00.000';
+        
+        // Reset progress
+        const fill = E.progressFill();
+        if (fill) fill.style.width = '0%';
+        const thumb = E.progressThumb();
+        if (thumb) thumb.style.left = '0%';
+        
+        // Reset title and duration
+        const titleEl = E.title();
+        if (titleEl) titleEl.textContent = '';
+        const durEl = E.duration();
+        if (durEl) durEl.textContent = '';
+        
+        // Revoke audio URL if set
+        const audioEl = E.audio();
+        if (audioEl) {
+            audioEl.pause();
+            audioEl.src = '';
+            audioEl.load();
+        }
+        
+        showStatus('Timeline cleared', 'info');
+        updatePoiStatus('offline', 'Not connected');
+    }
     function restart() {
         stop();
         _state.currentTime = 0;
@@ -759,7 +811,8 @@ const TimelinePlayer = (function() {
         seekTo: seekTo,
         isPlaying: () => _state.isPlaying,
         getCurrentTime: () => _state.currentTime,
-        getTotalDuration: getTotalDuration
+,
+        reset: reset
     };
 })();
 
