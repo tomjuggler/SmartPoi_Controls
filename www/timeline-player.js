@@ -499,20 +499,25 @@ const TimelinePlayer = (function() {
         _state.currentTime = timestamp - _state.startTime;
         const totalDuration = getTotalDuration();
 
-        // Check if playback is complete
+        // Cap at totalDuration so findIndexForTime can locate the last frame
+        // before we finish playback
+        const effectiveTime = Math.min(_state.currentTime, totalDuration);
+
+        // Check if we need to advance to the next image (BEFORE completion check,
+        // so the last frame's pattern is sent before playback finishes)
+        const newIndex = findIndexForTime(effectiveTime);
+        if (newIndex !== _state.currentIndex && newIndex >= 0) {
+            _state.currentIndex = newIndex;
+            sendPatternToPOIs(newIndex);
+            highlightCurrentFrame(newIndex);
+        }
+
+        // Check if playback is complete (after sending last pattern)
         if (_state.currentTime >= totalDuration) {
             _state.currentTime = totalDuration;
             updateUI();
             finishPlayback();
             return;
-        }
-
-        // Check if we need to advance to the next image
-        const newIndex = findIndexForTime(_state.currentTime);
-        if (newIndex !== _state.currentIndex && newIndex >= 0) {
-            _state.currentIndex = newIndex;
-            sendPatternToPOIs(newIndex);
-            highlightCurrentFrame(newIndex);
         }
 
         // Sync audio time
