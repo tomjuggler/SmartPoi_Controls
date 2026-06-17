@@ -844,4 +844,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 previewTimelineFromZip();
             }
         }
-    });
+
+});
+
+});
