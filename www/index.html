@@ -595,10 +595,53 @@
                         <button id="magic-bridge-clear" class="dark-button" style="display:none;">Clear</button>
                     </div>
                     <div id="upload-status-standalone" style="margin-top: 10px;"></div>
+            </div>
+            <!-- Play Timeline Section -->
+            <div class="step-card" id="timeline-player-section" style="display:none;">
+                <h2>🎵 Play Timeline</h2>
+                
+                <!-- Timeline Info -->
+                <div class="timeline-info" id="timeline-info">
+                    <span id="timeline-title"></span>
+                    <span id="timeline-duration"></span>
                 </div>
+                
+                <!-- Image Timeline Strip -->
+                <div class="timeline-images-container">
+                    <div id="timeline-images-strip" class="timeline-images-strip"></div>
+                </div>
+                
+                <!-- Transport Controls -->
+                <div class="timeline-transport">
+                    <button id="tl-restart" class="tl-btn" title="Restart">⏮</button>
+                    <button id="tl-play" class="tl-btn tl-play-btn" title="Play">▶</button>
+                    <button id="tl-pause" class="tl-btn" title="Pause" style="display:none;">⏸</button>
+                    <span id="tl-time" class="tl-time">00:00.000</span>
+                </div>
+                
+                <!-- Progress Bar (Seekable with markers) -->
+                <div class="timeline-progress-container" id="tl-progress-container">
+                    <div class="timeline-progress-track" id="tl-progress-track">
+                        <div class="timeline-progress-fill" id="tl-progress-fill"></div>
+                        <div class="timeline-progress-thumb" id="tl-progress-thumb"></div>
+                    </div>
+                </div>
+                
+                <!-- Time Markers below progress -->
+                <div class="timeline-time-markers" id="tl-time-markers"></div>
+                
+                <!-- Audio Element (hidden) -->
+                <audio id="tl-audio" style="display:none;"></audio>
+                
+                <!-- POI Status -->
+                <div class="timeline-poi-status">
+                    <span id="tl-poi-status">POI Status: <span class="status-dot offline"></span> Not connected</span>
+                </div>
+                
+                <!-- Status Messages -->
+                <div id="tl-status" class="upload-status"></div>
             </div>
         </div>
-    </div>
 
     <!-- About Tab -->
     <div id="about" class="tab-content">
@@ -655,6 +698,7 @@
     <script src="upload.js"></script>
     <script src="text-tab.js"></script>
     <script src="magic-bridge.js"></script>
+    <script src="timeline-player.js"></script>
     <script src="main.js"></script>
     <div class="message-modal" id="messageModal"></div>
     

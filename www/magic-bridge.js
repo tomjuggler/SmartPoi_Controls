@@ -19,6 +19,15 @@ async function fetchWithAbort(url, options = {}) {
         if (index > -1) abortControllers.splice(index, 1);
     }
 }
+// ZIP data cache - stores extracted data separately from upload
+const zipCache = {
+    files: null,         // File[] - upload-ready .bin files
+    timingsArray: null,   // number[] - timing data from images.json
+    timelineData: null,   // object - full images.json content
+    binArrayBuffers: [], // ArrayBuffer[] - raw binary data for TimelinePlayer
+    mp3BlobUrl: null,    // string|null - audio blob URL
+    isLoaded: false      // boolean - whether cache contains valid data
+};
 
 // Cancel ongoing upload
 function cancelUpload() {
@@ -49,6 +58,17 @@ function clearUpload() {
     const clearBtn = document.getElementById('magic-bridge-clear');
     clearBtn.style.display = 'none';
     uploadInProgress = false;
+    // Clear ZIP data cache
+    zipCache.files = null;
+    zipCache.timingsArray = null;
+    zipCache.timelineData = null;
+    zipCache.binArrayBuffers = [];
+    zipCache.mp3BlobUrl = null;
+    zipCache.isLoaded = false;
+    // Reset TimelinePlayer
+    if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.reset === 'function') {
+        TimelinePlayer.reset();
+    }
 }
 // Handle upload button click - toggle between start/cancel
 function toggleMagicBridgeUpload() {
@@ -80,91 +100,134 @@ async function processAndUploadZip() {
     uploadBtn.textContent = 'Cancel';
 
     uploadBtn.disabled = true;
-    statusEl.textContent = 'Processing ZIP file...';
+    statusEl.textContent = 'Preparing upload...';
     statusEl.style.color = 'inherit';
     let uploadSuccess = false;
+    
     try {
-        // Read and process ZIP file
-        const zip = await JSZip.loadAsync(fileInput.files[0]);
-
-        // Check for images.json and parse it to get the image order and timings
-        let imageOrder = null;
-        let timingsArray = null;
-        try {
-            const jsonFile = zip.file("images.json");
-            if (jsonFile) {
-                const jsonContent = await jsonFile.async('text');
-                const jsonData = JSON.parse(jsonContent);
-                if (jsonData.images_ordered && Array.isArray(jsonData.images_ordered)) {
-                    imageOrder = jsonData.images_ordered.map(name => {
-                        // Extract the name part before the first dot (e.g., "image1" from "image1.jpg")
-                        return name.split('.')[0];
-                    });
+        // Use cached data if available (populated by previewTimelineFromZip on file selection)
+        let files = zipCache.files;
+        let timingsArray = zipCache.timingsArray;
+        
+        // If cache is empty, extract from ZIP as fallback
+        if (!zipCache.isLoaded || !files || files.length === 0) {
+            console.log('[MagicBridge] Cache empty, extracting from ZIP for upload');
+            statusEl.textContent = 'Processing ZIP file...';
+            
+            const zip = await JSZip.loadAsync(fileInput.files[0]);
+            
+            // Parse images.json
+            let imageOrder = null;
+            timingsArray = null;
+            let timelineData = null;
+            
+            try {
+                const jsonFile = zip.file("images.json");
+                if (jsonFile) {
+                    const jsonContent = await jsonFile.async('text');
+                    const jsonData = JSON.parse(jsonContent);
+                    timelineData = jsonData;
+                    if (jsonData.images_ordered && Array.isArray(jsonData.images_ordered)) {
+                        imageOrder = jsonData.images_ordered.map(name => name.split('.')[0]);
+                    }
+                    if (jsonData.times && Array.isArray(jsonData.times)) {
+                        timingsArray = jsonData.times;
+                    }
                 }
-                if (jsonData.times && Array.isArray(jsonData.times)) {
-                    timingsArray = jsonData.times;
+            } catch (error) {
+                console.error('Error parsing images.json:', error);
+            }
+            
+            // Get all .bin files from the ZIP
+            const binFiles = Object.values(zip.files).filter(file => {
+                const fileName = file.name.split('/').pop().trim();
+                const hasBinExtension = /\.bin$/i.test(fileName);
+                return !file.dir && hasBinExtension && !file.name.includes('__MACOSX/');
+            });
+            
+            let orderedBinFiles = [];
+            if (imageOrder) {
+                const fileMap = {};
+                binFiles.forEach(file => {
+                    const fileName = file.name.split('/').pop().trim();
+                    const baseName = fileName.split('.')[0];
+                    fileMap[baseName] = file;
+                });
+                orderedBinFiles = imageOrder.map(baseName => fileMap[baseName]).filter(f => f !== null);
+            } else {
+                orderedBinFiles = binFiles.sort((a, b) => a.name.localeCompare(b.name));
+            }
+            
+            // Create File objects AND capture raw binary data for TimelinePlayer
+            const binArrayBuffers = [];
+            files = (await Promise.all(
+                orderedBinFiles.map(async (file) => {
+                    try {
+                        const arrayBuffer = await file.async('arraybuffer');
+                        if (arrayBuffer) binArrayBuffers.push(arrayBuffer);
+                    } catch (e) {
+                        console.warn('[MagicBridge] Failed to extract binary data from', file.name);
+                    }
+                    try {
+                        const blob = await file.async('blob');
+                        const originalFileName = file.name.split('/').pop().trim();
+                        return new File([blob], originalFileName, {
+                            type: 'application/octet-stream'
+                        });
+                    } catch (e) {
+                        console.warn('[MagicBridge] Failed to create blob from', file.name, e);
+                        return null;
+                    }
+                })
+            )).filter(f => f !== null);
+            
+            // Extract audio
+            let mp3BlobUrl = null;
+            try {
+                const audioFile = Object.values(zip.files).find(f => {
+                    const name = f.name.split('/').pop().trim().toLowerCase();
+                    return !f.dir && (name.endsWith('.mp3') || name.endsWith('.aac') || name.endsWith('.wav'));
+                });
+                if (audioFile) {
+                    const audioBlob = await audioFile.async('blob');
+                    mp3BlobUrl = URL.createObjectURL(audioBlob);
+                    console.log('[MagicBridge] Audio file extracted:', audioFile.name);
+                }
+            } catch (e) {
+                console.warn('[MagicBridge] No audio extracted');
+            }
+            
+            // Populate cache for future use
+            zipCache.files = files;
+            zipCache.timingsArray = timingsArray;
+            zipCache.timelineData = timelineData;
+            zipCache.binArrayBuffers = binArrayBuffers;
+            zipCache.mp3BlobUrl = mp3BlobUrl;
+            zipCache.isLoaded = true;
+            
+            // Initialize TimelinePlayer immediately (before upload)
+            if (timelineData && typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
+                try {
+                    TimelinePlayer.setAudioUrl(mp3BlobUrl);
+                    await TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
+                    console.log('[MagicBridge] TimelinePlayer initialized from fallback extraction');
+                } catch (tlErr) {
+                    console.error('[MagicBridge] TimelinePlayer fallback init failed:', tlErr);
                 }
             }
-        } catch (error) {
-            console.error('Error parsing images.json:', error);
-            imageOrder = null; // Fall back to default order
-            timingsArray = null;
         }
-
-        // Get all .bin files from the ZIP
-        const binFiles = Object.values(zip.files).filter(file => {
-            const fileName = file.name.split('/').pop().trim();
-            const hasBinExtension = /\.bin$/i.test(fileName);
-            return !file.dir && hasBinExtension && !file.name.includes('__MACOSX/');
-        });
-
-        let orderedBinFiles = [];
-
-        if (imageOrder) {
-            // Create a map from base name (without extension) to the file object
-            const fileMap = {};
-            binFiles.forEach(file => {
-                const fileName = file.name.split('/').pop().trim();
-                const baseName = fileName.split('.')[0]; // Get the part before the first dot
-                fileMap[baseName] = file;
-            });
-
-            // Order the files based on the imageOrder array
-            orderedBinFiles = imageOrder.map(baseName => {
-                if (fileMap[baseName]) {
-                    return fileMap[baseName];
-                } else {
-                    console.warn(`File not found for base name: ${baseName}`);
-                    return null;
-                }
-            }).filter(file => file !== null); // Remove any null entries for missing files
-        } else {
-            // Fallback: sort files alphabetically by name
-            orderedBinFiles = binFiles.sort((a, b) => a.name.localeCompare(b.name));
-        }
-
-        // Create the File objects with original .bin filenames
-        const files = await Promise.all(
-            orderedBinFiles.map(async (file) => {
-                const blob = await file.async('blob');
-                const originalFileName = file.name.split('/').pop().trim();
-                return new File([blob], originalFileName, {
-                    type: 'application/octet-stream'
-                });
-            })
-        );
-
+        
         if (files.length === 0) {
             throw new Error('No .bin files found in ZIP archive');
         }
-
+        
         // Show file list
         document.getElementById('file-list').style.display = 'block';
         document.getElementById('file-names').innerHTML = files
             .map(f => `<li>${f.name}</li>`)
             .join('');
-
-        // Proceed with upload
+        
+        // Proceed with upload only
         statusEl.textContent = 'Checking POI connectivity...';
         
         let mainAvailable = false;
@@ -176,18 +239,34 @@ async function processAndUploadZip() {
         let sevenAvailable = false;
         let eightAvailable = false;
 
-        // Connectivity check
-        [mainAvailable, auxAvailable, threeAvailable, fourAvailable, fiveAvailable, sixAvailable, sevenAvailable, eightAvailable] = await Promise.all([
-            verifyPoiConnectionMB(state.poiIPs.mainIP),
-            verifyPoiConnectionMB(state.poiIPs.auxIP),
-            verifyPoiConnectionMB(state.poiIPs.poiThreeIP),
-            verifyPoiConnectionMB(state.poiIPs.poiFourIP),
-            verifyPoiConnectionMB(state.poiIPs.poiFiveIP),
-            verifyPoiConnectionMB(state.poiIPs.poiSixIP),
-            verifyPoiConnectionMB(state.poiIPs.poiSevenIP),
-            verifyPoiConnectionMB(state.poiIPs.poiEightIP)
-        ]);
-
+        // Connectivity check - skip unconfigured IPs (0.0.0.0)
+        const isConfigured = (ip) => ip && ip !== '0.0.0.0';
+        
+        const connectivityChecks = [
+            { ip: state.poiIPs.mainIP, setter: (v) => { mainAvailable = v; }, label: 'Main' },
+            { ip: state.poiIPs.auxIP, setter: (v) => { auxAvailable = v; }, label: 'Aux' },
+            { ip: state.poiIPs.poiThreeIP, setter: (v) => { threeAvailable = v; }, label: 'POI 3' },
+            { ip: state.poiIPs.poiFourIP, setter: (v) => { fourAvailable = v; }, label: 'POI 4' },
+            { ip: state.poiIPs.poiFiveIP, setter: (v) => { fiveAvailable = v; }, label: 'POI 5' },
+            { ip: state.poiIPs.poiSixIP, setter: (v) => { sixAvailable = v; }, label: 'POI 6' },
+            { ip: state.poiIPs.poiSevenIP, setter: (v) => { sevenAvailable = v; }, label: 'POI 7' },
+            { ip: state.poiIPs.poiEightIP, setter: (v) => { eightAvailable = v; }, label: 'POI 8' }
+        ];
+        
+        await Promise.all(connectivityChecks.map(async (check) => {
+            if (isConfigured(check.ip)) {
+                try {
+                    const result = await verifyPoiConnectionMB(check.ip);
+                    check.setter(result);
+                } catch (e) {
+                    console.log(`${check.label} (${check.ip}) connectivity check failed`);
+                    check.setter(false);
+                }
+            } else {
+                check.setter(false);
+            }
+        }));
+        
         if (!mainAvailable && !auxAvailable && !threeAvailable && !fourAvailable && !fiveAvailable && !sixAvailable && !sevenAvailable && !eightAvailable) {
             throw new Error("No POIs available for upload");
         }
@@ -263,6 +342,7 @@ async function processAndUploadZip() {
         statusEl.textContent = 'Upload completed successfully!';
         statusEl.style.color = 'green';
         uploadSuccess = true;
+        
     } catch (error) {
         console.error('Upload error:', error);
         statusEl.textContent = `Upload failed: ${error.message}`;
@@ -386,10 +466,17 @@ async function uploadTimingsToPoi(timingsArray, ip, label) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
+    // Check content type before attempting JSON parse
+    const contentType = response.headers.get('Content-Type') || '';
+    if (contentType.includes('text/html') || contentType.includes('text/plain')) {
+      console.warn(`Timings endpoint on ${label} returned non-JSON response (likely not supported by this POI firmware)`);
+      statusEl.textContent = `Timings skipped for ${label} (endpoint may not support timings)`;
+      return;
+    }
+
     const result = await response.json();
     console.log('Timings upload result:', result);
     statusEl.textContent = `Timings uploaded to ${label} successfully`;
-
   } catch (error) {
     console.error(`Failed to upload timings to ${label}:`, error);
     // Don't throw - timings failure shouldn't break the whole upload
@@ -415,4 +502,165 @@ function adjustTimingsArray(timingsArray, targetLength) {
     result.push(lastTiming + lastInterval * (result.length - timingsArray.length + 1));
   }
   return result;
+
+}
+/**
+ * Preview timeline data from a ZIP file immediately on selection (no upload)
+ * Extracts images.json, .bin data, and audio for TimelinePlayer preview
+ */
+async function previewTimelineFromZip() {
+    const fileInput = document.getElementById('zip-input');
+    const statusEl = document.getElementById('upload-status-standalone');
+    
+    if (!fileInput.files[0]) {
+        console.log('[MagicBridge] No file selected for preview');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+        statusEl.textContent = 'Please select a ZIP file';
+        statusEl.style.color = 'red';
+        return;
+    }
+    
+    console.log('[MagicBridge] Previewing ZIP file:', file.name);
+    statusEl.textContent = 'Reading ZIP for preview...';
+    statusEl.style.color = 'inherit';
+    
+    try {
+        const zip = await JSZip.loadAsync(file);
+        
+        // Parse images.json
+        let timelineData = null;
+        let imageOrder = null;
+        let timingsArray = null;
+        let binArrayBuffers = [];
+        let mp3BlobUrl = null;
+        
+        try {
+            const jsonFile = zip.file("images.json");
+            if (jsonFile) {
+                const jsonContent = await jsonFile.async('text');
+                const jsonData = JSON.parse(jsonContent);
+                timelineData = jsonData;
+                console.log('[MagicBridge] images.json parsed:', jsonData.timeline_title || 'Untitled');
+                
+                if (jsonData.images_ordered && Array.isArray(jsonData.images_ordered)) {
+                    imageOrder = jsonData.images_ordered.map(name => name.split('.')[0]);
+                }
+                if (jsonData.times && Array.isArray(jsonData.times)) {
+                    timingsArray = jsonData.times;
+                }
+            }
+        } catch (e) {
+            console.warn('[MagicBridge] Failed to parse images.json:', e);
+        }
+        
+        if (!timelineData) {
+            statusEl.textContent = 'No images.json found in ZIP';
+            statusEl.style.color = 'orange';
+            return;
+        }
+        
+        // Get .bin files
+        const binFiles = Object.values(zip.files).filter(file => {
+            const fileName = file.name.split('/').pop().trim();
+            return !file.dir && /\.bin$/i.test(fileName) && !file.name.includes('__MACOSX/');
+        });
+        
+        let orderedBinFiles = [];
+        if (imageOrder) {
+            const fileMap = {};
+            binFiles.forEach(file => {
+                const fileName = file.name.split('/').pop().trim();
+                const baseName = fileName.split('.')[0];
+                fileMap[baseName] = file;
+            });
+            orderedBinFiles = imageOrder.map(baseName => fileMap[baseName]).filter(f => f !== null);
+        } else {
+            orderedBinFiles = binFiles.sort((a, b) => a.name.localeCompare(b.name));
+        }
+        
+        // Extract arraybuffers for TimelinePlayer AND create File objects for upload cache
+        const uploadFiles = (await Promise.all(orderedBinFiles.map(async (file) => {
+            try {
+                const arrayBuffer = await file.async('arraybuffer');
+                if (arrayBuffer) binArrayBuffers.push(arrayBuffer);
+            } catch (e) {
+                console.warn('[MagicBridge] Failed to extract binary data from', file.name);
+            }
+            // Also create File object for upload (with its own error handling)
+            try {
+                const blob = await file.async('blob');
+                const originalFileName = file.name.split('/').pop().trim();
+                return new File([blob], originalFileName, {
+                    type: 'application/octet-stream'
+                });
+            } catch (e) {
+                console.warn('[MagicBridge] Failed to create blob from', file.name, e);
+                return null;
+            }
+        }))).filter(f => f !== null);
+        
+        if (uploadFiles.length === 0) {
+            throw new Error('No .bin files found in ZIP archive');
+        }
+        
+        // Extract audio
+        try {
+            const audioFile = Object.values(zip.files).find(f => {
+                const name = f.name.split('/').pop().trim().toLowerCase();
+                return !f.dir && (name.endsWith('.mp3') || name.endsWith('.aac') || name.endsWith('.wav'));
+            });
+            if (audioFile) {
+                const audioBlob = await audioFile.async('blob');
+                mp3BlobUrl = URL.createObjectURL(audioBlob);
+                console.log('[MagicBridge] Audio file extracted:', audioFile.name);
+                statusEl.textContent += ' Audio found.';
+            }
+        } catch (e) {
+            console.warn('[MagicBridge] No audio extracted');
+        }
+        
+        // Populate ZIP cache for later upload
+        zipCache.files = uploadFiles;
+        zipCache.timingsArray = timingsArray;
+        zipCache.timelineData = timelineData;
+        zipCache.binArrayBuffers = binArrayBuffers;
+        zipCache.mp3BlobUrl = mp3BlobUrl;
+        zipCache.isLoaded = true;
+        
+        // Show file list for upload
+        document.getElementById('file-list').style.display = 'block';
+        document.getElementById('file-names').innerHTML = uploadFiles
+            .map(f => `<li>${f.name}</li>`)
+            .join('');
+        
+        statusEl.textContent = `Loaded ${binArrayBuffers.length} images. Initializing timeline...`;
+        
+        // Initialize TimelinePlayer
+        if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
+            try {
+                TimelinePlayer.setAudioUrl(mp3BlobUrl);
+                // Await the async loadTimelineData to catch any errors
+                await TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
+                console.log('[MagicBridge] TimelinePlayer initialized from ZIP preview');
+                statusEl.textContent = `Timeline ready: ${binArrayBuffers.length} images loaded.`;
+                statusEl.style.color = '#90c695';
+            } catch (tlErr) {
+                console.error('[MagicBridge] TimelinePlayer init failed:', tlErr);
+                statusEl.textContent = 'Timeline init failed: ' + tlErr.message;
+                statusEl.style.color = 'red';
+            }
+        } else {
+            console.warn('[MagicBridge] TimelinePlayer not available');
+            statusEl.textContent = 'TimelinePlayer not available';
+        }
+        
+    } catch (error) {
+        console.error('[MagicBridge] ZIP preview failed:', error);
+        statusEl.textContent = 'Failed to read ZIP: ' + error.message;
+        statusEl.style.color = 'red';
+    }
 }
