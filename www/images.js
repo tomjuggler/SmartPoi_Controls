@@ -892,17 +892,17 @@ async function deleteAllImages() {
         const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         const filenames = Array.from(characters).map(c => `${c}.bin`);
 
-        // Delete from all POIs
-        await Promise.all([
-            deleteFromPoi(state.poiIPs.mainIP, filenames),
-            deleteFromPoi(state.poiIPs.auxIP, filenames),
-            deleteFromPoi(state.poiIPs.poiThreeIP, filenames),
-            deleteFromPoi(state.poiIPs.poiFourIP, filenames),
-            deleteFromPoi(state.poiIPs.poiFiveIP, filenames),
-            deleteFromPoi(state.poiIPs.poiSixIP, filenames),
-            deleteFromPoi(state.poiIPs.poiSevenIP, filenames),
-            deleteFromPoi(state.poiIPs.poiEightIP, filenames)
-        ]);
+        // Delete from all configured POIs only (skip unconfigured ones with 0.0.0.0)
+        const deleteTasks = [];
+        if (state.poiIPs.mainIP && state.poiIPs.mainIP !== '0.0.0.0') deleteTasks.push(deleteFromPoi(state.poiIPs.mainIP, filenames));
+        if (state.poiIPs.auxIP && state.poiIPs.auxIP !== '0.0.0.0') deleteTasks.push(deleteFromPoi(state.poiIPs.auxIP, filenames));
+        if (state.poiIPs.poiThreeIP && state.poiIPs.poiThreeIP !== '0.0.0.0') deleteTasks.push(deleteFromPoi(state.poiIPs.poiThreeIP, filenames));
+        if (state.poiIPs.poiFourIP && state.poiIPs.poiFourIP !== '0.0.0.0') deleteTasks.push(deleteFromPoi(state.poiIPs.poiFourIP, filenames));
+        if (state.poiIPs.poiFiveIP && state.poiIPs.poiFiveIP !== '0.0.0.0') deleteTasks.push(deleteFromPoi(state.poiIPs.poiFiveIP, filenames));
+        if (state.poiIPs.poiSixIP && state.poiIPs.poiSixIP !== '0.0.0.0') deleteTasks.push(deleteFromPoi(state.poiIPs.poiSixIP, filenames));
+        if (state.poiIPs.poiSevenIP && state.poiIPs.poiSevenIP !== '0.0.0.0') deleteTasks.push(deleteFromPoi(state.poiIPs.poiSevenIP, filenames));
+        if (state.poiIPs.poiEightIP && state.poiIPs.poiEightIP !== '0.0.0.0') deleteTasks.push(deleteFromPoi(state.poiIPs.poiEightIP, filenames));
+        await Promise.all(deleteTasks);
         
         createMessage('All images deleted from all POIs');
         refreshAllImages(true);
