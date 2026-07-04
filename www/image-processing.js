@@ -118,6 +118,10 @@ window.decompressAndDisplay = async function(ip, fileName) {
         }
         
         const response = await fetch(`http://${ip}/edit?file=${encodeURIComponent(fileName)}`);
+        if (!response.ok) {
+            console.warn(`File ${fileName} not found on ${ip} (${response.status})`);
+            return;
+        }
         const arrayBuffer = await response.arrayBuffer();
         const binaryData = new Uint8Array(arrayBuffer);
         const imageUrl = await decompress(binaryData);
