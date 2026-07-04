@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.circusscientist.smartpoicontrols" version="1.0.6" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.circusscientist.smartpoicontrols" version="1.0.7" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>SmartPoi_Controls</name>
     <description>Smart Poi LED Control Application</description>
     <author email="dev@circusscientist.com" href="https://circusscientist.com">
@@ -8,7 +8,7 @@
     <content src="index.html" />
     <!-- Application icons -->
     <icon src="res/ic_launcher-web.png" />
-    
+
     <!-- Allow access to local network devices -->
     <access origin="http://*" />
     <access origin="http://*.local" />
@@ -30,20 +30,20 @@
     <access origin="http://172.29.*" />
     <access origin="http://172.30.*" />
     <access origin="http://172.31.*" />
-    
+
     <!-- Allow file system access for file selection -->
     <preference name="AndroidPersistentFileLocation" value="Internal" />
     <preference name="iosPersistentFileLocation" value="Library" />
-    
+
     <!-- Network security configuration for Android -->
     <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application" xmlns:android="http://schemas.android.com/apk/res/android">
         <application android:usesCleartextTraffic="true" />
     </edit-config>
-    
+
     <!-- Platform preferences -->
     <preference name="loadUrlTimeoutValue" value="700000" />
     <preference name="AndroidInsecureFileModeEnabled" value="true" />
-    
+
     <!-- Intent handling -->
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
