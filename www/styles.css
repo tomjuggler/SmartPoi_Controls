@@ -277,12 +277,71 @@
         padding: 12px 16px;
         font-size: 1.1em;
         width: 100%;
+        box-sizing: border-box;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: break-word;
     }
     
     .control-block > h3 + button {
         display: block;
         margin: 15px auto 0;
         min-width: 150px;
+    }
+
+    /* File list controls - stack vertically on mobile */
+    .list-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    /* File list containers - single column on mobile */
+    .list-containers {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Manual IP rows - stack vertically on mobile */
+    .manual-ip-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .manual-ip-row input[type="text"] {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Fetch buttons - prevent text overflow */
+    .image-controls .dark-button,
+    .fetch-buttons .dark-button,
+    .list-controls .dark-button {
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+    
+    /* Danger zone inputs - stack vertically */
+    .danger-zone label {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .danger-zone input[type="text"],
+    .danger-zone input[type="password"],
+    .danger-zone input[type="number"] {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Reduce container padding on mobile */
+    .app-container {
+        padding: 12px;
+    }
+    
+    /* Status indicators - single column on mobile */
+    .status-indicators {
+        grid-template-columns: 1fr;
     }
 }
 
