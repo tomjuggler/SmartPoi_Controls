@@ -35,6 +35,25 @@ async function restoreOriginalPatterns(mainAvailable = true, auxAvailable = true
   await delay(1000); // Final safety delay
 }
 
+// Show status in the Upload Bin tab
+function showUploadStatus(message, type = 'info') {
+    const statusEl = document.getElementById('uploadBinStatus');
+    if (statusEl) {
+        statusEl.textContent = message;
+        statusEl.className = `upload-status ${type}`;
+        
+        // Auto-clear non-error messages after 5 seconds
+        if (type !== 'error') {
+            setTimeout(() => {
+                if (statusEl.textContent === message) {
+                    statusEl.textContent = '';
+                    statusEl.className = 'upload-status';
+                }
+            }, 5000);
+        }
+    }
+}
+
 let originalPattern; // Will store the original pattern during upload
 
 async function fetchOriginalPattern() {
@@ -72,8 +91,10 @@ async function handleUpload() {
 
     try {
         createMessage('Starting upload process...', 'info');
+        showUploadStatus('Starting upload process...', 'info');
         
         // Verify POI connections
+        showUploadStatus('Checking POI connections...', 'info');
         const [mainAvailable, auxAvailable, threeAvailable, fourAvailable, fiveAvailable, sixAvailable, sevenAvailable, eightAvailable] = await Promise.all([
             verifyPoiConnection(state.poiIPs.mainIP),
             verifyPoiConnection(state.poiIPs.auxIP),
@@ -90,9 +111,11 @@ async function handleUpload() {
         }
 
         // Store original patterns
+        showUploadStatus('Storing original patterns...', 'info');
         await fetchOriginalPattern();
 
         // Set upload patterns
+        showUploadStatus('Setting upload mode on POIs...', 'info');
         const patternTasks = [];
         if (mainAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.mainIP));
         if (auxAvailable) patternTasks.push(setPatternSafe(7, state.poiIPs.auxIP));
@@ -156,6 +179,7 @@ async function handleUpload() {
         await Promise.all(uploadTasks);
         
         // Restore original patterns
+        showUploadStatus('Restoring original patterns...', 'info');
         const connectedPOIs = [];
         if (mainAvailable) connectedPOIs.push('Main POI');
         if (auxAvailable) connectedPOIs.push('Aux POI');
@@ -167,9 +191,12 @@ async function handleUpload() {
         if (eightAvailable) connectedPOIs.push('POI 8');
         await restoreOriginalPatterns(mainAvailable, auxAvailable, threeAvailable, fourAvailable, fiveAvailable, sixAvailable, sevenAvailable, eightAvailable);
         
-        createMessage(`Upload completed to ${connectedPOIs.length > 0 ? connectedPOIs.join(', ') : 'No POIs'}`);
+        const msg = `Upload completed to ${connectedPOIs.length > 0 ? connectedPOIs.join(', ') : 'No POIs'}`;
+        createMessage(msg);
+        showUploadStatus(msg, 'success');
 
     } catch (error) {
+        showUploadStatus(`Upload failed: ${error.message}`, 'error');
         handleCriticalError(error);
     } finally {
         state.upload.orderedFiles = [];
@@ -186,9 +213,13 @@ function logBatchCompletion(batchNumber, totalBatches, label) {
 async function processPairWithBackoff(filesToUpload, targetIps, pairPixelCount, label) {
     const batchCount = Math.ceil(filesToUpload.length / state.upload.config.BATCH_SIZE);
     
+    showUploadStatus(`${label}: Starting upload of ${filesToUpload.length} file(s)...`, 'info');
+    
     for(let batchIndex = 0; batchIndex < batchCount; batchIndex++) {
         const batchStart = batchIndex * state.upload.config.BATCH_SIZE;
         const batchFiles = filesToUpload.slice(batchStart, batchStart + state.upload.config.BATCH_SIZE);
+        
+        showUploadStatus(`${label}: Processing file ${batchIndex + 1} of ${filesToUpload.length}...`, 'info');
         
         await processPairBatch(batchFiles, targetIps, pairPixelCount, label, batchIndex+1, batchCount);
         
@@ -196,10 +227,13 @@ async function processPairWithBackoff(filesToUpload, targetIps, pairPixelCount, 
             await delay(state.upload.config.INTER_BATCH_DELAY);
         }
     }
+    
+    showUploadStatus(`${label}: Upload completed`, 'success');
 }
 
 async function processPairBatch(batchFiles, targetIps, pairPixelCount, label, batchNumber, totalBatches) {
     const batchPromises = batchFiles.map(async (fileData) => {
+        showUploadStatus(`${label}: Uploading ${fileData.file.name}...`, 'info');
         await processFileForPairWithRetry(fileData, targetIps, pairPixelCount);
         await delay(state.upload.config.INTER_FILE_DELAY);
     });
