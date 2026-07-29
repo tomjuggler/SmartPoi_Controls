@@ -96,8 +96,45 @@ const state = {
             RETRY_BACKOFF: [1000, 3000, 5000, 7000, 10000],
             POI_CHECK_TIMEOUT: 5000
         }
-    }
+    },
+    timelines: [] // Array of { id, title, mp3Data, timings, files, binArrayBuffers, audioUrl, assignedPoiIP, assignedPoiLabel, timelineData }
 };
+
+/**
+ * Get list of POI labels with their IPs
+ */
+function getPoiList() {
+    return [
+        { label: 'Main POI', ip: state.poiIPs.mainIP, key: 'mainIP' },
+        { label: 'Aux POI', ip: state.poiIPs.auxIP, key: 'auxIP' },
+        { label: 'POI 3', ip: state.poiIPs.poiThreeIP, key: 'poiThreeIP' },
+        { label: 'POI 4', ip: state.poiIPs.poiFourIP, key: 'poiFourIP' },
+        { label: 'POI 5', ip: state.poiIPs.poiFiveIP, key: 'poiFiveIP' },
+        { label: 'POI 6', ip: state.poiIPs.poiSixIP, key: 'poiSixIP' },
+        { label: 'POI 7', ip: state.poiIPs.poiSevenIP, key: 'poiSevenIP' },
+        { label: 'POI 8', ip: state.poiIPs.poiEightIP, key: 'poiEightIP' }
+    ];
+}
+
+/**
+ * Get POIs that are not yet assigned to any timeline
+ */
+function getAvailablePois() {
+    const allPois = getPoiList();
+    const assignedIPs = (state.magicBridge.timelines || [])
+        .map(t => t.assignedPoiIP)
+        .filter(ip => ip && ip !== '0.0.0.0');
+    return allPois.filter(p => p.ip && p.ip !== '0.0.0.0' && !assignedIPs.includes(p.ip));
+}
+
+/**
+ * Get assigned POI label for a given IP
+ */
+function getPoiLabel(ip) {
+    const poi = getPoiList().find(p => p.ip === ip);
+    return poi ? poi.label : 'Unknown';
+}
+
 
 // State Persistence
 function loadState() {
@@ -235,5 +272,23 @@ function loadState() {
     // Update aux POI pixel display if available
     if (state.settings.pixelsTwo !== undefined) {
         updatePixelDisplayForPoi('aux', state.settings.pixelsTwo);
+    }
+    
+    // Load timeline configurations
+    if (saved.magicBridge && saved.magicBridge.timelines) {
+        state.magicBridge.timelines = saved.magicBridge.timelines.map(t => ({
+            ...t,
+            // Reset volatile data on load - user must re-select ZIP files
+            files: null,
+            binArrayBuffers: [],
+            audioUrl: null,
+            mp3Data: null,
+            timelineData: null
+        }));
+        console.log('[State] Loaded', state.magicBridge.timelines.length, 'timeline configuration(s) from saved state');
+        // Rebuild timeline UI if the function exists
+        if (typeof rebuildTimelineUI === 'function') {
+            setTimeout(rebuildTimelineUI, 100);
+        }
     }
 }

@@ -384,6 +384,8 @@ async function handleTimelineZipSelected(timelineId) {
             }
         }
 
+        // After any timeline is loaded/reloaded, update TimelinePlayer with ALL data
+        updateTimelinePlayerState();
         saveState();
         rebuildTimelineUI();
 
@@ -397,8 +399,41 @@ async function handleTimelineZipSelected(timelineId) {
 }
 
 // ============================
-//   MULTI-TIMELINE MANAGEMENT
+//   UPDATE TIMELINEPLAYER
 // ============================
+
+/**
+ * Update TimelinePlayer with ALL timeline data for multi-timeline playback
+ * Builds the full array of timeline objects and passes it to TimelinePlayer
+ */
+function updateTimelinePlayerState() {
+    const timelines = state.magicBridge.timelines || [];
+    if (timelines.length === 0 || typeof TimelinePlayer === 'undefined') return;
+    
+    // Build array of timeline objects for TimelinePlayer
+    const tlDataArray = timelines.map(tl => ({
+        times: tl.timingsArray || [],
+        imagesOrdered: tl.timelineData ? tl.timelineData.images_ordered : [],
+        timelineData: tl.timelineData,
+        binArrayBuffers: tl.binArrayBuffers || [],
+        title: tl.title || 'Timeline',
+        assignedPoiIP: tl.assignedPoiIP,
+        assignedPoiLabel: tl.assignedPoiLabel
+    })).filter(tl => tl.times.length > 0 || tl.timelineData !== null);
+    
+    if (tlDataArray.length > 0 && typeof TimelinePlayer.loadTimelineData === 'function') {
+        // Use first timeline's audio URL
+        const firstTl = timelines[0];
+        if (firstTl.audioUrl) {
+            TimelinePlayer.setAudioUrl(firstTl.audioUrl);
+        }
+        TimelinePlayer.loadTimelineData(tlDataArray, timelines[0].binArrayBuffers || [])
+            .catch(e => console.warn('[MagicBridge] TimelinePlayer update failed:', e));
+    }
+}
+
+// ============================
+//   MULTI-TIMELINE MANAGEMENT
 
 function addTimeline() {
     const timelines = state.magicBridge.timelines || [];
@@ -444,7 +479,7 @@ function removeTimeline(timelineId) {
     const removedTl = timelines[index];
     timelines.splice(index, 1);
 
-    // If it was the first timeline, reset TimelinePlayer
+    // If it was the first timeline, reset zipCache
     if (index === 0) {
         zipCache.files = null;
         zipCache.timingsArray = null;
@@ -455,22 +490,11 @@ function removeTimeline(timelineId) {
         if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.reset === 'function') {
             TimelinePlayer.reset();
         }
-        // If there's a new first timeline with data, load it
-        if (timelines.length > 0 && timelines[0].files && timelines[0].files.length > 0) {
-            const newFirst = timelines[0];
-            zipCache.files = newFirst.files;
-            zipCache.timingsArray = newFirst.timingsArray;
-            zipCache.timelineData = newFirst.timelineData;
-            zipCache.binArrayBuffers = newFirst.binArrayBuffers;
-            zipCache.mp3BlobUrl = newFirst.audioUrl;
-            zipCache.isLoaded = true;
-            if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
-                TimelinePlayer.setAudioUrl(newFirst.audioUrl);
-                TimelinePlayer.loadTimelineData(newFirst.timelineData, newFirst.binArrayBuffers)
-                    .catch(e => console.warn('[MagicBridge] Failed to load new first timeline:', e));
-            }
-        }
     }
+
+    // Update TimelinePlayer with remaining timelines
+    updateTimelinePlayerState();
+
 
     // Clean up audio URL
     if (removedTl.audioUrl) {

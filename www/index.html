@@ -586,33 +586,36 @@
     <div id="magic-bridge" class="tab-content">
         <div class="container">
             <div class="step-card step-active">
-                <h2>⚡ Direct ZIP Upload to POI</h2>
+                <h2>⚡ Multi-Timeline Upload &amp; Playback</h2>
                 <p>This feature is for paid Patreon subscribers</p>
                 <a href="https://patreon.com/circusscientist" target="_blank" class="about-link">Join the Patreon for access to premium features</a>
-                <div class="input-container">
-                    <input type="file" id="zip-input" accept=".zip">
-                    <div id="file-list" style="margin: 10px 0; display: none;">
-                        <h3>Files to upload:</h3>
-                        <ul id="file-names"></ul>
-                    </div>
-                    <br>
-                    <div class="button-group">
-                        <button id="magic-bridge-upload">Upload to POI</button>
-                        <button id="magic-bridge-clear" class="dark-button" style="display:none;">Clear</button>
-                    </div>
-                    <div id="upload-status-standalone" style="margin-top: 10px;"></div>
-            </div>
-            <!-- Play Timeline Section -->
-            <div class="step-card" id="timeline-player-section" style="display:none;">
-                <h2>🎵 Play Timeline</h2>
-
-                <!-- Timeline Info -->
-                <div class="timeline-info" id="timeline-info">
-                    <span id="timeline-title"></span>
-                    <span id="timeline-duration"></span>
+                
+                <!-- Timeline Entries Container -->
+                <div id="timeline-entries-container">
+                    <!-- Timeline entries are dynamically added here by rebuildTimelineUI() -->
                 </div>
+                
+                <!-- Add Timeline Button -->
+                <div class="timeline-add-row">
+                    <button id="add-timeline-btn" class="tl-add-btn">+ Add Timeline</button>
+                </div>
+                
+                <!-- Batch Upload Buttons -->
+                <div class="button-group">
+                    <button id="magic-bridge-upload" class="tl-upload-all-btn">Upload All to Assigned POIs</button>
+                    <button id="magic-bridge-clear" class="dark-button" style="display:none;">Clear All</button>
+                </div>
+                <div id="upload-status-standalone" style="margin-top: 10px;"></div>
+            </div>
+            
+            <!-- Playback Section -->
+            <div class="step-card" id="timeline-player-section" style="display:none;">
+                <h2>🎵 Multi-Timeline Playback</h2>
+                
+                <!-- Timeline Assignments Display -->
+                <div class="multi-timeline-assignments" id="multi-timeline-assignments"></div>
 
-                <!-- Image Timeline Strip -->
+                <!-- Image Timeline Strip (from first timeline) -->
                 <div class="timeline-images-container">
                     <div id="timeline-images-strip" class="timeline-images-strip"></div>
                 </div>
@@ -636,17 +639,14 @@
                 <!-- Time Markers below progress -->
                 <div class="timeline-time-markers" id="tl-time-markers"></div>
 
-                <!-- Audio Element (hidden) -->
+                <!-- Audio Element (hidden) - only from first timeline -->
                 <audio id="tl-audio" style="display:none;"></audio>
 
-                <!-- POI Status -->
-                <div class="timeline-poi-status">
-                    <span id="tl-poi-status">POI Status: <span class="status-dot offline"></span> Not connected</span>
-                </div>
+                <!-- Timeline Status Display -->
+                <div class="multi-timeline-status" id="multi-timeline-status"></div>
 
                 <!-- Status Messages -->
                 <div id="tl-status" class="upload-status"></div>
-            </div>
             </div>
         </div>
     </div>

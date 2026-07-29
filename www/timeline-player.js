@@ -126,6 +126,19 @@ const TimelinePlayer = (function() {
         _state.binFiles = binFilesArray || [];
         _state.decompressedPreviews = [];
 
+        // Normalize input: if a single object (not array) is passed, wrap it as first timeline
+        if (!Array.isArray(timelinesArray) && timelinesArray && typeof timelinesArray === 'object') {
+            timelinesArray = [{
+                times: timelinesArray.times || [],
+                imagesOrdered: timelinesArray.images_ordered || timelinesArray.imagesOrdered || [],
+                timelineData: timelinesArray,
+                binArrayBuffers: binFilesArray || [],
+                title: timelinesArray.timeline_title || 'Timeline',
+                assignedPoiIP: null,
+                assignedPoiLabel: null
+            }];
+        }
+
         // Store all timelines
         _state.allTimelines = timelinesArray || [];
 

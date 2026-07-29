@@ -1405,3 +1405,213 @@ input[type="range"] {
 .router-only {
     display: none;
 }
+
+/* ========== Multi-Timeline Styles ========== */
+.timeline-entry-card {
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.timeline-entry-card.has-data {
+  border-color: #2c7a47;
+}
+
+.timeline-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.timeline-entry-title {
+  font-weight: bold;
+  color: #90c695;
+  font-size: 1em;
+}
+
+.timeline-entry-status {
+  font-size: 0.85em;
+  color: #888;
+}
+
+.timeline-entry-status.loaded {
+  color: #90c695;
+}
+
+.timeline-entry-status.uploaded {
+  color: #4CAF50;
+}
+
+.timeline-entry-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.timeline-entry-controls input[type="file"] {
+  flex: 1;
+  min-width: 180px;
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 0.85em;
+}
+
+.timeline-poi-select {
+  min-width: 140px;
+  padding: 8px;
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.timeline-poi-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.timeline-remove-btn {
+  background: #5a1e1e;
+  color: white;
+  border: 1px solid #8b4444;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timeline-remove-btn:hover {
+  background: #7a2e2e;
+}
+
+.timeline-add-row {
+  margin: 15px 0;
+  text-align: center;
+}
+
+.tl-add-btn {
+  background: #2c7a47;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tl-add-btn:hover {
+  background: #3a9a5a;
+  transform: scale(1.05);
+}
+
+.tl-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tl-upload-all-btn {
+  background: #2c7a47 !important;
+  color: white !important;
+  border: 2px solid #2c7a47 !important;
+  border-radius: 8px !important;
+  padding: 10px 24px !important;
+  font-size: 1em !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.tl-upload-all-btn:hover {
+  background: #3a9a5a !important;
+  transform: scale(1.05);
+}
+
+.tl-upload-all-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Multi-Timeline Assignments Display */
+.multi-timeline-assignments {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.timeline-assignment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  margin: 4px 0;
+  background: #252525;
+  border-radius: 4px;
+  border-left: 3px solid #2c7a47;
+  font-size: 0.85em;
+}
+
+.timeline-assignment-item .tl-assign-title {
+  color: #90c695;
+  font-weight: bold;
+}
+
+.timeline-assignment-item .tl-assign-poi {
+  color: #ddd;
+}
+
+/* Multi-Timeline Status Display */
+.multi-timeline-status {
+  margin-top: 8px;
+  font-size: 0.85em;
+}
+
+.tl-status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  margin: 2px 0;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.tl-status-item .tl-status-poi {
+  color: #aaa;
+}
+
+.tl-status-item .tl-status-pattern {
+  color: #90c695;
+  font-family: monospace;
+}
+
+.tl-status-item.active-send {
+  background: rgba(44, 122, 71, 0.15);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .timeline-entry-controls {
+    flex-direction: column;
+  }
+  
+  .timeline-entry-controls input[type="file"] {
+    width: 100%;
+  }
+  
+  .timeline-poi-select {
+    width: 100%;
+  }
+}
