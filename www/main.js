@@ -818,33 +818,21 @@ document.addEventListener('DOMContentLoaded', () => {
     updateNetworkModeDisplay();
 
     // Initialize magic bridge upload button
-    document.getElementById('magic-bridge-upload').addEventListener('click', toggleMagicBridgeUpload);
+    // Magic Bridge upload - use uploadAllTimelines (multi-timeline)
+    var mbUploadEl = document.getElementById('magic-bridge-upload');
+    if (mbUploadEl && typeof uploadAllTimelines === 'function') {
+        mbUploadEl.addEventListener('click', uploadAllTimelines);
+    }
     // Initialize clear button
     document.getElementById('magic-bridge-clear').addEventListener('click', clearUpload);
-    // Show clear button when file selected and preview timeline
-    document.getElementById('zip-input').addEventListener('change', () => {
-        const clearBtn = document.getElementById('magic-bridge-clear');
-        const hasFile = document.getElementById('zip-input').files[0];
-        clearBtn.style.display = hasFile ? 'inline-block' : 'none';
-        
-        // Preview timeline data immediately when file is selected (no upload needed)
-        if (hasFile) {
-            // Hide file list from previous upload
-            document.getElementById('file-list').style.display = 'none';
-            // Clear status message
-            const statusEl = document.getElementById('upload-status-standalone');
-            statusEl.textContent = '';
-            // Reset button text if not currently uploading
-            if (!uploadInProgress) {
-                const uploadBtn = document.getElementById('magic-bridge-upload');
-                uploadBtn.textContent = 'Upload to POI';
-            }
-            // Preview the ZIP (extract + show timeline, no upload)
-            if (typeof previewTimelineFromZip === 'function') {
-                previewTimelineFromZip();
-            }
-        }
-
-});
+    // Multi-timeline: wire up add-timeline button
+    var addTlBtn2 = document.getElementById('add-timeline-btn');
+    if (addTlBtn2 && typeof addTimeline === 'function') {
+        addTlBtn2.addEventListener('click', addTimeline);
+    }
+    // Initial rebuild of timeline UI from saved state
+    if (typeof rebuildTimelineUI === 'function') {
+        setTimeout(rebuildTimelineUI, 300);
+    }
 
 });
