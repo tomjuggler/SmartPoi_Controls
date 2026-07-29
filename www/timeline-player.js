@@ -31,6 +31,7 @@ const TimelinePlayer = (function() {
         pausedTime: 0,
         currentTime: 0,
         currentIndex: -1,
+        lastTimelineFrames: [], // Tracks last sent frame index per timeline for independent POI timing
         animationFrameId: null,
 
         // Audio (from first timeline only)
@@ -395,6 +396,9 @@ const TimelinePlayer = (function() {
             audioEl.play().catch(e => console.log('[TimelinePlayer] Audio play failed:', e));
         }
 
+        // Reset per-timeline frame tracker so each timeline sends its initial frame
+        _state.lastTimelineFrames = new Array((_state.allTimelines || []).length).fill(-1);
+
         // Send the current frame for ALL timelines to their assigned POIs immediately
         if (_state.currentIndex >= 0) {
             // Send current pattern for each timeline to its assigned POI
@@ -478,6 +482,7 @@ const TimelinePlayer = (function() {
         _state.audioUrl = null;
         _state.totalDuration = 0;
         _state.allTimelines = [];
+        _state.lastTimelineFrames = [];
 
         // Clear image strip
         const strip = E.imageStrip();
@@ -555,6 +560,9 @@ const TimelinePlayer = (function() {
             audioEl.currentTime = timeMs / 1000;
         }
 
+        // Reset per-timeline frame tracker so seek sends the correct frames
+        _state.lastTimelineFrames = new Array((_state.allTimelines || []).length).fill(-1);
+
         // Send the pattern for this frame to ALL timelines' assigned POIs
         if (_state.currentIndex >= 0) {
             sendPatternsForAllTimelines(_state.currentIndex);
@@ -578,12 +586,28 @@ const TimelinePlayer = (function() {
         // Cap at totalDuration so findIndexForTime can locate the last frame
         const effectiveTime = Math.min(_state.currentTime, totalDuration);
 
-        // Check if we need to advance to the next image
+        // PER-TIMELINE frame check - each timeline advances independently
+        // Only send pattern commands to POIs whose timeline frame has changed
+        const timelines = _state.allTimelines || [];
+        timelines.forEach((tl, tlIdx) => {
+            var ips = tl.assignedPoiIPs || [tl.assignedPoiIP].filter(Boolean);
+            if (ips.length === 0) return;
+
+            const tlFrame = findTimelineFrameIndex(tl, _state.currentTime);
+            const lastFrame = _state.lastTimelineFrames[tlIdx];
+            if (tlFrame >= 0 && tlFrame !== lastFrame) {
+                _state.lastTimelineFrames[tlIdx] = tlFrame;
+                var pattern = tlFrame + 8;
+                ips.forEach(function(ip) {
+                    sendPatternToPOI(pattern, ip);
+                });
+            }
+        });
+
+        // First timeline index for UI highlighting (image strip)
         const newIndex = findIndexForTime(effectiveTime);
         if (newIndex !== _state.currentIndex && newIndex >= 0) {
             _state.currentIndex = newIndex;
-            // Send patterns for ALL timelines to their assigned POIs
-            sendPatternsForAllTimelines(newIndex);
             highlightCurrentFrame(newIndex);
         }
 
@@ -640,7 +664,7 @@ const TimelinePlayer = (function() {
 
         let sentCount = 0;
 
-        timelines.forEach((tl) => {
+        timelines.forEach((tl, tlIdx) => {
             var ips = tl.assignedPoiIPs || [tl.assignedPoiIP].filter(Boolean);
             if (ips.length === 0) {
                 console.log('[TimelinePlayer] ' + (tl.title || 'Timeline') + ' has no assigned POI, skipping');
@@ -656,6 +680,9 @@ const TimelinePlayer = (function() {
                 sendPatternToPOI(pattern, ip);
                 sentCount++;
             });
+
+            // Track this frame as last sent for this timeline
+            _state.lastTimelineFrames[tlIdx] = tlIndex;
         });
 
         if (sentCount > 0) {
