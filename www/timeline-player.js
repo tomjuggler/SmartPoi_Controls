@@ -134,8 +134,8 @@ const TimelinePlayer = (function() {
                 timelineData: timelinesArray,
                 binArrayBuffers: binFilesArray || [],
                 title: timelinesArray.timeline_title || 'Timeline',
-                assignedPoiIP: null,
-                assignedPoiLabel: null
+                assignedPoiIPs: [],
+                assignedPoiLabels: []
             }];
         }
 
@@ -352,13 +352,14 @@ const TimelinePlayer = (function() {
         if (timelines.length === 0) return;
 
         timelines.forEach((tl, index) => {
-            const label = tl.assignedPoiLabel || getPoiLabel(tl.assignedPoiIP) || 'Unknown';
+            var labels = tl.assignedPoiLabels || [tl.assignedPoiLabel].filter(Boolean);
+            var ips = tl.assignedPoiIPs || [tl.assignedPoiIP].filter(Boolean);
             const title = tl.title || `Timeline ${index + 1}`;
-            const ip = tl.assignedPoiIP || 'Not assigned';
+            var displayText = labels.length > 0 ? labels.join(', ') : (ips.length > 0 ? ips.join(', ') : 'Not assigned');
 
             const item = document.createElement('div');
             item.className = 'timeline-assignment-item';
-            item.innerHTML = `<span class="tl-assign-title">${title}</span> <span class="tl-assign-poi">→ ${label} (${ip})</span>`;
+            item.innerHTML = '<span class="tl-assign-title">' + title + '</span> <span class="tl-assign-poi">→ ' + displayText + '</span>';
             container.appendChild(item);
         });
     }
@@ -640,9 +641,9 @@ const TimelinePlayer = (function() {
         let sentCount = 0;
 
         timelines.forEach((tl) => {
-            const ip = tl.assignedPoiIP;
-            if (!ip || ip === '0.0.0.0') {
-                console.log(`[TimelinePlayer] ${tl.title || 'Timeline'} has no assigned POI, skipping`);
+            var ips = tl.assignedPoiIPs || [tl.assignedPoiIP].filter(Boolean);
+            if (ips.length === 0) {
+                console.log('[TimelinePlayer] ' + (tl.title || 'Timeline') + ' has no assigned POI, skipping');
                 return;
             }
 
@@ -650,9 +651,11 @@ const TimelinePlayer = (function() {
             const tlIndex = findTimelineFrameIndex(tl, _state.currentTime);
             if (tlIndex < 0) return;
 
-            const pattern = tlIndex + 8; // Pattern 8 = a.bin (index 0), 9 = b.bin (index 1), etc.
-            sendPatternToPOI(pattern, ip);
-            sentCount++;
+            var pattern = tlIndex + 8;
+            ips.forEach(function(ip) {
+                sendPatternToPOI(pattern, ip);
+                sentCount++;
+            });
         });
 
         if (sentCount > 0) {
@@ -725,11 +728,10 @@ const TimelinePlayer = (function() {
      */
     function getConnectedPoiIPs() {
         const timelines = _state.allTimelines || [];
-        const ips = new Set();
-        timelines.forEach(tl => {
-            if (tl.assignedPoiIP && tl.assignedPoiIP !== '0.0.0.0') {
-                ips.add(tl.assignedPoiIP);
-            }
+        timelines.forEach(function(tl) {
+            (tl.assignedPoiIPs || []).forEach(function(ip) {
+                if (ip && ip !== '0.0.0.0') ips.add(ip);
+            });
         });
 
         if (ips.size > 0) {
@@ -800,8 +802,10 @@ const TimelinePlayer = (function() {
         }
 
         timelines.forEach((tl) => {
-            const ip = tl.assignedPoiIP;
-            const label = tl.assignedPoiLabel || getPoiLabel(ip) || 'Unknown';
+            var ips = tl.assignedPoiIPs || [tl.assignedPoiIP].filter(Boolean);
+            var labels = tl.assignedPoiLabels || [tl.assignedPoiLabel].filter(Boolean);
+            var displayLabel = labels.length > 0 ? labels.join(', ') : (ips.length > 0 ? ips.join(', ') : 'Not assigned');
+            var hasPoi = ips.length > 0;
             const title = tl.title || 'Timeline';
 
             // Find current frame for this timeline
@@ -814,8 +818,8 @@ const TimelinePlayer = (function() {
                 item.classList.add('active-send');
             }
 
-            const statusIcon = ip && ip !== '0.0.0.0' ? '🟢' : '⚪';
-            item.innerHTML = `<span class="tl-status-poi">${statusIcon} ${title} → ${label}</span> <span class="tl-status-pattern">Pattern ${pattern}</span>`;
+            var statusIcon = hasPoi ? '🟢' : '⚪';
+            item.innerHTML = '<span class="tl-status-poi">' + statusIcon + ' ' + title + ' → ' + displayLabel + '</span> <span class="tl-status-pattern">Pattern ' + pattern + '</span>';
             container.appendChild(item);
         });
     }

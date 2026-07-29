@@ -139,44 +139,36 @@ function rebuildTimelineUI() {
         });
         controls.appendChild(fileInput);
 
-        // POI dropdown
-        const poiSelect = document.createElement('select');
-        poiSelect.className = 'timeline-poi-select';
-        poiSelect.dataset.timelineId = tl.id;
-        if (tl.uploaded) poiSelect.disabled = true;
-
-        // Build POI options
-        const allPois = getPoiList();
-        const assignedIPs = timelines
-            .filter(t => t.id !== tl.id)
-            .map(t => t.assignedPoiIP)
-            .filter(ip => ip && ip !== '0.0.0.0');
-
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = '-- Select POI --';
-        poiSelect.appendChild(defaultOption);
-
-        allPois.forEach(poi => {
+        // POI checkboxes (multi-select)
+        var poiLabel = document.createElement('label');
+        poiLabel.className = 'tl-poi-label';
+        poiLabel.textContent = 'Send to:';
+        controls.appendChild(poiLabel);
+        
+        var poiCheckGroup = document.createElement('div');
+        poiCheckGroup.className = 'tl-poi-checkgroup';
+        
+        var allPois = getPoiList();
+        var selectedIPs = tl.assignedPoiIPs || [];
+        
+        allPois.forEach(function(poi) {
             if (!poi.ip || poi.ip === '0.0.0.0') return;
-            // Show this POI if it's available OR if it's already assigned to THIS timeline
-            const isTaken = assignedIPs.includes(poi.ip);
-            const isMine = tl.assignedPoiIP === poi.ip;
-            if (isTaken && !isMine) return;
-
-            const option = document.createElement('option');
-            option.value = poi.ip;
-            option.textContent = poi.label + ' (' + poi.ip + ')';
-            if (tl.assignedPoiIP === poi.ip) {
-                option.selected = true;
-            }
-            poiSelect.appendChild(option);
+            var label = document.createElement('label');
+            label.className = 'tl-poi-check-label';
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = poi.ip;
+            cb.checked = selectedIPs.indexOf(poi.ip) !== -1;
+            if (tl.uploaded) cb.disabled = true;
+            cb.addEventListener('change', function() {
+                handlePoiToggle(tl.id, poi.ip, this.checked);
+            });
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(' ' + poi.label));
+            poiCheckGroup.appendChild(label);
         });
-
-        poiSelect.addEventListener('change', function() {
-            handlePoiSelection(tl.id, this.value);
-        });
-        controls.appendChild(poiSelect);
+        
+        controls.appendChild(poiCheckGroup);
 
         // Remove button
         const removeBtn = document.createElement('button');
@@ -208,7 +200,7 @@ function rebuildTimelineUI() {
     // Update Upload All button
     const uploadBtn = document.getElementById('magic-bridge-upload');
     if (uploadBtn) {
-        const hasReadyTimelines = timelines.some(t => t.files && t.files.length > 0 && t.assignedPoiIP && !t.uploaded);
+        const hasReadyTimelines = timelines.some(t => t.files && t.files.length > 0 && t.assignedPoiIPs && t.assignedPoiIPs.length > 0 && !t.uploaded);
         uploadBtn.disabled = !hasReadyTimelines;
     }
 }
@@ -417,8 +409,8 @@ function updateTimelinePlayerState() {
         timelineData: tl.timelineData,
         binArrayBuffers: tl.binArrayBuffers || [],
         title: tl.title || 'Timeline',
-        assignedPoiIP: tl.assignedPoiIP,
-        assignedPoiLabel: tl.assignedPoiLabel
+        assignedPoiIPs: tl.assignedPoiIPs || [],
+        assignedPoiLabels: tl.assignedPoiLabels || []
     })).filter(tl => tl.times.length > 0 || tl.timelineData !== null);
     
     if (tlDataArray.length > 0 && typeof TimelinePlayer.loadTimelineData === 'function') {
@@ -446,7 +438,6 @@ function addTimeline() {
         }
         return;
     }
-
     const newId = 'tl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
     timelines.push({
         id: newId,
@@ -456,15 +447,12 @@ function addTimeline() {
         timelineData: null,
         binArrayBuffers: [],
         audioUrl: null,
-        assignedPoiIP: null,
-        assignedPoiLabel: null,
+        assignedPoiIPs: [],
+        assignedPoiLabels: [],
         uploaded: false
     });
-
     saveState();
     rebuildTimelineUI();
-
-    // Scroll to the new entry
     const container = document.getElementById('timeline-entries-container');
     if (container) {
         container.scrollTop = container.scrollHeight;
@@ -512,19 +500,25 @@ function removeTimeline(timelineId) {
     }
 }
 
-function handlePoiSelection(timelineId, ip) {
+function handlePoiToggle(timelineId, ip, checked) {
     const timelines = state.magicBridge.timelines || [];
     const tl = timelines.find(t => t.id === timelineId);
     if (!tl) return;
-
-    if (ip) {
-        tl.assignedPoiIP = ip;
-        tl.assignedPoiLabel = getPoiLabel(ip);
+    if (!tl.assignedPoiIPs) tl.assignedPoiIPs = [];
+    if (!tl.assignedPoiLabels) tl.assignedPoiLabels = [];
+    if (checked) {
+        if (tl.assignedPoiIPs.indexOf(ip) === -1) {
+            tl.assignedPoiIPs.push(ip);
+            tl.assignedPoiLabels.push(getPoiLabel(ip));
+        }
     } else {
-        tl.assignedPoiIP = null;
-        tl.assignedPoiLabel = null;
+        const idx = tl.assignedPoiIPs.indexOf(ip);
+        if (idx !== -1) {
+            tl.assignedPoiIPs.splice(idx, 1);
+            tl.assignedPoiLabels.splice(idx, 1);
+        }
     }
-
+    updateTimelinePlayerState();
     saveState();
     rebuildTimelineUI();
 }
@@ -538,7 +532,7 @@ async function uploadAllTimelines() {
     const uploadBtn = document.getElementById('magic-bridge-upload');
     const timelines = state.magicBridge.timelines || [];
 
-    const readyTimelines = timelines.filter(t => t.files && t.files.length > 0 && t.assignedPoiIP && !t.uploaded);
+    const readyTimelines = timelines.filter(t => t.files && t.files.length > 0 && t.assignedPoiIPs && t.assignedPoiIPs.length > 0 && !t.uploaded);
     if (readyTimelines.length === 0) {
         if (statusEl) {
             statusEl.textContent = 'No timelines ready for upload. Load ZIP and assign POI first.';
@@ -556,57 +550,62 @@ async function uploadAllTimelines() {
     let allSuccess = true;
 
     for (const tl of readyTimelines) {
-        const label = tl.assignedPoiLabel || tl.assignedPoiIP;
-        if (statusEl) {
-            statusEl.textContent = `Uploading to ${label}...`;
-        }
-
-        try {
-            // Verify connectivity first
-            let connected = false;
-            try {
-                connected = await verifyPoiConnectionMB(tl.assignedPoiIP);
-            } catch (e) {
-                connected = false;
+        const ips = tl.assignedPoiIPs || [];
+        const labels = tl.assignedPoiLabels || [];
+        for (let pi = 0; pi < ips.length; pi++) {
+            const ip = ips[pi];
+            const label = labels[pi] || ip;
+            if (statusEl) {
+                statusEl.textContent = `Uploading to ${label}...`;
             }
 
-            if (!connected) {
-                console.warn(`[MagicBridge] ${label} not reachable, skipping`);
+            try {
+                // Verify connectivity first
+                let connected = false;
+                try {
+                    connected = await verifyPoiConnectionMB(ip);
+                } catch (e) {
+                    connected = false;
+                }
+
+                if (!connected) {
+                    console.warn(`[MagicBridge] ${label} not reachable, skipping`);
+                    if (statusEl) {
+                        statusEl.textContent = `${label} not reachable, skipping...`;
+                        statusEl.style.color = 'orange';
+                    }
+                    allSuccess = false;
+                    continue;
+                }
+
+                // Upload timings first if available
+                if (tl.timingsArray) {
+                    const adjustedTimings = adjustTimingsArray(tl.timingsArray, tl.files.length);
+                    try {
+                        await uploadTimingsToPoi(adjustedTimings, ip, label);
+                    } catch (e) {
+                        console.warn(`[MagicBridge] Timings upload to ${label} failed, continuing:`, e);
+                    }
+                }
+
+                // Upload .bin files
+                await uploadToPoiWithProgress(tl.files, ip, label);
+
                 if (statusEl) {
-                    statusEl.textContent = `${label} not reachable, skipping...`;
-                    statusEl.style.color = 'orange';
+                    statusEl.textContent = `${label}: ${tl.files.length} files uploaded successfully.`;
+                    statusEl.style.color = 'green';
+                }
+
+            } catch (error) {
+                console.error(`[MagicBridge] Upload failed for ${label}:`, error);
+                if (statusEl) {
+                    statusEl.textContent = `Upload failed for ${label}: ${error.message}`;
+                    statusEl.style.color = 'red';
                 }
                 allSuccess = false;
-                continue;
             }
-
-            // Upload timings first if available
-            if (tl.timingsArray) {
-                const adjustedTimings = adjustTimingsArray(tl.timingsArray, tl.files.length);
-                try {
-                    await uploadTimingsToPoi(adjustedTimings, tl.assignedPoiIP, label);
-                } catch (e) {
-                    console.warn(`[MagicBridge] Timings upload to ${label} failed, continuing:`, e);
-                }
-            }
-
-            // Upload .bin files
-            await uploadToPoiWithProgress(tl.files, tl.assignedPoiIP, label);
-
-            tl.uploaded = true;
-            if (statusEl) {
-                statusEl.textContent = `${label}: ${tl.files.length} files uploaded successfully.`;
-                statusEl.style.color = 'green';
-            }
-
-        } catch (error) {
-            console.error(`[MagicBridge] Upload failed for ${label}:`, error);
-            if (statusEl) {
-                statusEl.textContent = `Upload failed for ${label}: ${error.message}`;
-                statusEl.style.color = 'red';
-            }
-            allSuccess = false;
         }
+        tl.uploaded = true;
     }
 
     saveState();
