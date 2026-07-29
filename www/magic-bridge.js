@@ -1,6 +1,6 @@
-// Smart Magic Bridge functionality
-let uploadInProgress = false;
+// Smart Magic Bridge functionality - Multi-Timeline Edition
 let abortControllers = [];
+
 // Wrapper for fetch that adds abort controller
 async function fetchWithAbort(url, options = {}) {
     const controller = new AbortController();
@@ -14,538 +14,259 @@ async function fetchWithAbort(url, options = {}) {
     } catch (error) {
         throw error;
     } finally {
-        // Remove controller from array once request completes
         const index = abortControllers.indexOf(controller);
         if (index > -1) abortControllers.splice(index, 1);
     }
 }
-// ZIP data cache - stores extracted data separately from upload
+
+// Fetch with timeout wrapper
+async function fetchWithTimeout(url, options = {}, timeout = 5000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    abortControllers.push(controller);
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+    } finally {
+        const index = abortControllers.indexOf(controller);
+        if (index > -1) abortControllers.splice(index, 1);
+    }
+}
+
+// ZIP data cache for the first timeline's preview data (TimelinePlayer)
 const zipCache = {
-    files: null,         // File[] - upload-ready .bin files
-    timingsArray: null,   // number[] - timing data from images.json
-    timelineData: null,   // object - full images.json content
-    binArrayBuffers: [], // ArrayBuffer[] - raw binary data for TimelinePlayer
-    mp3BlobUrl: null,    // string|null - audio blob URL
-    isLoaded: false      // boolean - whether cache contains valid data
+    files: null,
+    timingsArray: null,
+    timelineData: null,
+    binArrayBuffers: [],
+    mp3BlobUrl: null,
+    isLoaded: false
 };
 
-// Cancel ongoing upload
+// Cancel ongoing uploads
 function cancelUpload() {
     abortControllers.forEach(controller => controller.abort());
     abortControllers = [];
-    uploadInProgress = false;
-    const fileInput = document.getElementById('zip-input');
-    fileInput.disabled = false;
-    const uploadBtn = document.getElementById('magic-bridge-upload');
-    uploadBtn.textContent = 'Try again';
-    uploadBtn.disabled = false;
     const statusEl = document.getElementById('upload-status-standalone');
-    statusEl.textContent = 'Upload cancelled';
-    statusEl.style.color = 'orange';
+    if (statusEl) {
+        statusEl.textContent = 'Upload cancelled';
+        statusEl.style.color = 'orange';
+    }
 }
 
-// Clear file selection and reset UI
+// Clear all timelines and reset
 function clearUpload() {
-    cancelUpload(); // Cancel any ongoing upload first
-    const fileInput = document.getElementById('zip-input');
-    fileInput.value = '';
-    fileInput.disabled = false;
-    document.getElementById('file-list').style.display = 'none';
-    const statusEl = document.getElementById('upload-status-standalone');
-    statusEl.textContent = '';
-    const uploadBtn = document.getElementById('magic-bridge-upload');
-    uploadBtn.textContent = 'Upload to POI';
-    const clearBtn = document.getElementById('magic-bridge-clear');
-    clearBtn.style.display = 'none';
-    uploadInProgress = false;
-    // Clear ZIP data cache
+    cancelUpload();
+    state.magicBridge.timelines = [];
     zipCache.files = null;
     zipCache.timingsArray = null;
     zipCache.timelineData = null;
     zipCache.binArrayBuffers = [];
     zipCache.mp3BlobUrl = null;
     zipCache.isLoaded = false;
-    // Reset TimelinePlayer
     if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.reset === 'function') {
         TimelinePlayer.reset();
     }
-}
-// Handle upload button click - toggle between start/cancel
-function toggleMagicBridgeUpload() {
-    if (uploadInProgress) {
-        cancelUpload();
-    } else {
-        processAndUploadZip();
-    }
-}
-async function processAndUploadZip() {
-    const fileInput = document.getElementById('zip-input');
-    const statusEl = document.getElementById('upload-status-standalone');
-    const uploadBtn = document.getElementById('magic-bridge-upload');
-    
-    if (!fileInput.files[0]) {
-        statusEl.textContent = 'Please select a ZIP file first';
-        statusEl.style.color = 'red';
-        return;
-    }
-
-    if (uploadInProgress) {
-        // Already uploading, should not happen because button text changed
-        return;
-    }
-    uploadInProgress = true;
-    fileInput.disabled = true;
+    saveState();
+    rebuildTimelineUI();
     const clearBtn = document.getElementById('magic-bridge-clear');
-    clearBtn.style.display = 'inline-block';
-    uploadBtn.textContent = 'Cancel';
-
-    uploadBtn.disabled = true;
-    statusEl.textContent = 'Preparing upload...';
-    statusEl.style.color = 'inherit';
-    let uploadSuccess = false;
-    
-    try {
-        // Use cached data if available (populated by previewTimelineFromZip on file selection)
-        let files = zipCache.files;
-        let timingsArray = zipCache.timingsArray;
-        
-        // If cache is empty, extract from ZIP as fallback
-        if (!zipCache.isLoaded || !files || files.length === 0) {
-            console.log('[MagicBridge] Cache empty, extracting from ZIP for upload');
-            statusEl.textContent = 'Processing ZIP file...';
-            
-            const zip = await JSZip.loadAsync(fileInput.files[0]);
-            
-            // Parse images.json
-            let imageOrder = null;
-            timingsArray = null;
-            let timelineData = null;
-            
-            try {
-                const jsonFile = zip.file("images.json");
-                if (jsonFile) {
-                    const jsonContent = await jsonFile.async('text');
-                    const jsonData = JSON.parse(jsonContent);
-                    timelineData = jsonData;
-                    if (jsonData.images_ordered && Array.isArray(jsonData.images_ordered)) {
-                        imageOrder = jsonData.images_ordered.map(name => name.split('.')[0]);
-                    }
-                    if (jsonData.times && Array.isArray(jsonData.times)) {
-                        timingsArray = jsonData.times;
-                    }
-                }
-            } catch (error) {
-                console.error('Error parsing images.json:', error);
-            }
-            
-            // Get all .bin files from the ZIP
-            const binFiles = Object.values(zip.files).filter(file => {
-                const fileName = file.name.split('/').pop().trim();
-                const hasBinExtension = /\.bin$/i.test(fileName);
-                return !file.dir && hasBinExtension && !file.name.includes('__MACOSX/');
-            });
-            
-            let orderedBinFiles = [];
-            if (imageOrder) {
-                const fileMap = {};
-                binFiles.forEach(file => {
-                    const fileName = file.name.split('/').pop().trim();
-                    const baseName = fileName.split('.')[0];
-                    fileMap[baseName] = file;
-                });
-                orderedBinFiles = imageOrder.map(baseName => fileMap[baseName]).filter(f => f !== null);
-            } else {
-                orderedBinFiles = binFiles.sort((a, b) => a.name.localeCompare(b.name));
-            }
-            
-            // Create File objects AND capture raw binary data for TimelinePlayer
-            const binArrayBuffers = [];
-            files = (await Promise.all(
-                orderedBinFiles.map(async (file) => {
-                    try {
-                        const arrayBuffer = await file.async('arraybuffer');
-                        if (arrayBuffer) binArrayBuffers.push(arrayBuffer);
-                    } catch (e) {
-                        console.warn('[MagicBridge] Failed to extract binary data from', file.name);
-                    }
-                    try {
-                        const blob = await file.async('blob');
-                        const originalFileName = file.name.split('/').pop().trim();
-                        return new File([blob], originalFileName, {
-                            type: 'application/octet-stream'
-                        });
-                    } catch (e) {
-                        console.warn('[MagicBridge] Failed to create blob from', file.name, e);
-                        return null;
-                    }
-                })
-            )).filter(f => f !== null);
-            
-            // Extract audio
-            let mp3BlobUrl = null;
-            try {
-                const audioFile = Object.values(zip.files).find(f => {
-                    const name = f.name.split('/').pop().trim().toLowerCase();
-                    return !f.dir && (name.endsWith('.mp3') || name.endsWith('.aac') || name.endsWith('.wav'));
-                });
-                if (audioFile) {
-                    const audioBlob = await audioFile.async('blob');
-                    mp3BlobUrl = URL.createObjectURL(audioBlob);
-                    console.log('[MagicBridge] Audio file extracted:', audioFile.name);
-                }
-            } catch (e) {
-                console.warn('[MagicBridge] No audio extracted');
-            }
-            
-            // Populate cache for future use
-            zipCache.files = files;
-            zipCache.timingsArray = timingsArray;
-            zipCache.timelineData = timelineData;
-            zipCache.binArrayBuffers = binArrayBuffers;
-            zipCache.mp3BlobUrl = mp3BlobUrl;
-            zipCache.isLoaded = true;
-            
-            // Initialize TimelinePlayer immediately (before upload)
-            if (timelineData && typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
-                try {
-                    TimelinePlayer.setAudioUrl(mp3BlobUrl);
-                    await TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
-                    console.log('[MagicBridge] TimelinePlayer initialized from fallback extraction');
-                } catch (tlErr) {
-                    console.error('[MagicBridge] TimelinePlayer fallback init failed:', tlErr);
-                }
-            }
-        }
-        
-        if (files.length === 0) {
-            throw new Error('No .bin files found in ZIP archive');
-        }
-        
-        // Show file list
-        document.getElementById('file-list').style.display = 'block';
-        document.getElementById('file-names').innerHTML = files
-            .map(f => `<li>${f.name}</li>`)
-            .join('');
-        
-        // Proceed with upload only
-        statusEl.textContent = 'Checking POI connectivity...';
-        
-        let mainAvailable = false;
-        let auxAvailable = false;
-        let threeAvailable = false;
-        let fourAvailable = false;
-        let fiveAvailable = false;
-        let sixAvailable = false;
-        let sevenAvailable = false;
-        let eightAvailable = false;
-
-        // Connectivity check - skip unconfigured IPs (0.0.0.0)
-        const isConfigured = (ip) => ip && ip !== '0.0.0.0';
-        
-        const connectivityChecks = [
-            { ip: state.poiIPs.mainIP, setter: (v) => { mainAvailable = v; }, label: 'Main' },
-            { ip: state.poiIPs.auxIP, setter: (v) => { auxAvailable = v; }, label: 'Aux' },
-            { ip: state.poiIPs.poiThreeIP, setter: (v) => { threeAvailable = v; }, label: 'POI 3' },
-            { ip: state.poiIPs.poiFourIP, setter: (v) => { fourAvailable = v; }, label: 'POI 4' },
-            { ip: state.poiIPs.poiFiveIP, setter: (v) => { fiveAvailable = v; }, label: 'POI 5' },
-            { ip: state.poiIPs.poiSixIP, setter: (v) => { sixAvailable = v; }, label: 'POI 6' },
-            { ip: state.poiIPs.poiSevenIP, setter: (v) => { sevenAvailable = v; }, label: 'POI 7' },
-            { ip: state.poiIPs.poiEightIP, setter: (v) => { eightAvailable = v; }, label: 'POI 8' }
-        ];
-        
-        await Promise.all(connectivityChecks.map(async (check) => {
-            if (isConfigured(check.ip)) {
-                try {
-                    const result = await verifyPoiConnectionMB(check.ip);
-                    check.setter(result);
-                } catch (e) {
-                    console.log(`${check.label} (${check.ip}) connectivity check failed`);
-                    check.setter(false);
-                }
-            } else {
-                check.setter(false);
-            }
-        }));
-        
-        if (!mainAvailable && !auxAvailable && !threeAvailable && !fourAvailable && !fiveAvailable && !sixAvailable && !sevenAvailable && !eightAvailable) {
-            throw new Error("No POIs available for upload");
-        }
-
-        statusEl.textContent = `Uploading ${files.length} files...`;
-        
-        // Upload timings if available (before images)
-        if (timingsArray) {
-            // Warn if timings array length doesn't match number of images
-            if (timingsArray.length !== files.length) {
-                console.warn(`Timings array length (${timingsArray.length}) doesn't match number of images (${files.length}), adjusting...`);
-                timingsArray = adjustTimingsArray(timingsArray, files.length);
-            }
-            const timingPromises = [];
-            if (mainAvailable) {
-                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.mainIP, 'Main POI'));
-            }
-            if (auxAvailable) {
-                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.auxIP, 'Aux POI'));
-            }
-            if (threeAvailable) {
-                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiThreeIP, 'POI 3'));
-            }
-            if (fourAvailable) {
-                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiFourIP, 'POI 4'));
-            }
-            if (fiveAvailable) {
-                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiFiveIP, 'POI 5'));
-            }
-            if (sixAvailable) {
-                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiSixIP, 'POI 6'));
-            }
-            if (sevenAvailable) {
-                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiSevenIP, 'POI 7'));
-            }
-            if (eightAvailable) {
-                timingPromises.push(uploadTimingsToPoi(timingsArray, state.poiIPs.poiEightIP, 'POI 8'));
-            }
-            await Promise.allSettled(timingPromises); // Don't let timings failure break the flow
-        }
-
-        statusEl.textContent = `Uploading ${files.length} files...`;
-        
-        // Upload images to available POIs
-        const uploadPromises = [];
-        if (mainAvailable) {
-            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.mainIP, 'Main POI'));
-        }
-        if (auxAvailable) {
-            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.auxIP, 'Aux POI'));
-        }
-        if (threeAvailable) {
-            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiThreeIP, 'POI 3'));
-        }
-        if (fourAvailable) {
-            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiFourIP, 'POI 4'));
-        }
-        if (fiveAvailable) {
-            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiFiveIP, 'POI 5'));
-        }
-        if (sixAvailable) {
-            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiSixIP, 'POI 6'));
-        }
-        if (sevenAvailable) {
-            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiSevenIP, 'POI 7'));
-        }
-        if (eightAvailable) {
-            uploadPromises.push(uploadToPoiWithProgress(files, state.poiIPs.poiEightIP, 'POI 8'));
-        }
-
-        await Promise.all(uploadPromises);
-        
-        statusEl.textContent = 'Upload completed successfully!';
-        statusEl.style.color = 'green';
-        uploadSuccess = true;
-        
-    } catch (error) {
-        console.error('Upload error:', error);
-        statusEl.textContent = `Upload failed: ${error.message}`;
-        statusEl.style.color = 'red';
-    } finally {
-        // Only update if upload wasn't already cancelled
-        if (uploadInProgress) {
-            uploadInProgress = false;
-            if (uploadSuccess) {
-                uploadBtn.textContent = 'Upload to POI';
-            } else {
-                uploadBtn.textContent = 'Try again';
-            }
-        }
-        uploadBtn.disabled = false;
-        fileInput.disabled = false;
-    }
-}
-
-async function verifyPoiConnectionMB(ip) {
-  // New simplified check that just verifies basic connectivity
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 2000);
-  abortControllers.push(controller);
-
-  try {
-    // Try HEAD request first as it's lighter
-    await fetch(`http://${ip}/edit`, {
-      method: 'HEAD',
-      mode: 'no-cors',
-      signal: controller.signal
-    });
-    return true;
-  } catch (error) {
-    // If HEAD fails, try GET as fallback
-    try {
-      await fetch(`http://${ip}/get-pixels`, {
-        method: 'GET', 
-        mode: 'no-cors',
-        signal: controller.signal
-      });
-      return true;
-    } catch (e) {
-      // Final fallback - just attempt to connect
-      return new Promise(resolve => {
-        const img = new Image();
-        img.onerror = () => resolve(true); // Even 404 means POI is reachable
-        img.onabort = () => resolve(false);
-        setTimeout(() => resolve(false), 2000);
-        img.src = `http://${ip}/favicon.ico?t=${Date.now()}`;
-      });
-    }
-  } finally {
-    clearTimeout(timeoutId);
-    const index = abortControllers.indexOf(controller);
-    if (index > -1) abortControllers.splice(index, 1);
-  }
-}
-
-async function uploadToPoiWithProgress(files, ip, label) {
-  const statusEl = document.getElementById('upload-status-standalone');
-  const config = state.magicBridge.CONFIG;
-  
-  try {
-    const batchCount = Math.ceil(files.length / config.BATCH_SIZE);
-    
-    for (let batchIndex = 0; batchIndex < batchCount; batchIndex++) {
-      const batchStart = batchIndex * config.BATCH_SIZE;
-      const batchFiles = files.slice(batchStart, batchStart + config.BATCH_SIZE);
-      
-      statusEl.textContent = `Uploading to ${label}: Batch ${batchIndex+1}/${batchCount}`;
-      
-      for (let fileIndex = 0; fileIndex < batchFiles.length; fileIndex++) {
-        const file = batchFiles[fileIndex];
-        const targetName = generateUploadBinFilename(batchStart + fileIndex);
-        const formData = new FormData();
-        formData.append('file', file, targetName);
-        
-        await fetchWithAbort(`http://${ip}/edit`, {
-          method: 'POST',
-          body: formData
-        });
-        await delay(config.INTER_FILE_DELAY);
-      }
-      
-      if (batchIndex < batchCount - 1) {
-        await delay(config.INTER_BATCH_DELAY);
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('POI Upload Failure:', {
-      ip,
-      error: error.message,
-      stack: error.stack
-    });
-    throw error;
-  }
-}
-async function uploadTimingsToPoi(timingsArray, ip, label) {
-  const statusEl = document.getElementById('upload-status-standalone');
-  if (!timingsArray || !Array.isArray(timingsArray)) {
-    console.log('No timings array provided, skipping timings upload');
-    return;
-  }
-
-  try {
-    statusEl.textContent = `Uploading timings to ${label}...`;
-
-    const jsonBody = JSON.stringify(timingsArray);
-    const response = await fetchWithAbort(`http://${ip}/timings`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: `body=${encodeURIComponent(jsonBody)}`
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    // Check content type before attempting JSON parse
-    const contentType = response.headers.get('Content-Type') || '';
-    if (contentType.includes('text/html') || contentType.includes('text/plain')) {
-      console.warn(`Timings endpoint on ${label} returned non-JSON response (likely not supported by this POI firmware)`);
-      statusEl.textContent = `Timings skipped for ${label} (endpoint may not support timings)`;
-      return;
-    }
-
-    const result = await response.json();
-    console.log('Timings upload result:', result);
-    statusEl.textContent = `Timings uploaded to ${label} successfully`;
-  } catch (error) {
-    console.error(`Failed to upload timings to ${label}:`, error);
-    // Don't throw - timings failure shouldn't break the whole upload
-    statusEl.textContent = `Timings upload to ${label} failed: ${error.message}`;
-  }
-}
-function adjustTimingsArray(timingsArray, targetLength) {
-  if (timingsArray.length === targetLength) {
-    return timingsArray;
-  }
-
-  if (timingsArray.length > targetLength) {
-    // Truncate to target length
-    return timingsArray.slice(0, targetLength);
-  }
-
-  // Extend timings array by repeating the last interval
-  const result = [...timingsArray];
-  const lastTiming = result[result.length - 1];
-  let lastInterval = result.length >= 2 ? lastTiming - result[result.length - 2] : 1000; // default 1 second
-
-  while (result.length < targetLength) {
-    result.push(lastTiming + lastInterval * (result.length - timingsArray.length + 1));
-  }
-  return result;
-
-}
-/**
- * Preview timeline data from a ZIP file immediately on selection (no upload)
- * Extracts images.json, .bin data, and audio for TimelinePlayer preview
- */
-async function previewTimelineFromZip() {
-    const fileInput = document.getElementById('zip-input');
+    if (clearBtn) clearBtn.style.display = 'none';
     const statusEl = document.getElementById('upload-status-standalone');
-    
-    if (!fileInput.files[0]) {
-        console.log('[MagicBridge] No file selected for preview');
+    if (statusEl) {
+        statusEl.textContent = '';
+        statusEl.style.color = 'inherit';
+    }
+}
+
+// ============================
+//     MULTI-TIMELINE UI
+// ============================
+
+function rebuildTimelineUI() {
+    const container = document.getElementById('timeline-entries-container');
+    if (!container) return;
+    const timelines = state.magicBridge.timelines || [];
+    container.innerHTML = '';
+
+    timelines.forEach((tl, index) => {
+        const card = document.createElement('div');
+        card.className = 'timeline-entry-card' + (tl.files ? ' has-data' : '');
+        card.dataset.timelineId = tl.id;
+
+        // Header: title + status
+        const header = document.createElement('div');
+        header.className = 'timeline-entry-header';
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'timeline-entry-title';
+        titleSpan.textContent = tl.title || `Timeline ${index + 1}`;
+        header.appendChild(titleSpan);
+
+        const statusSpan = document.createElement('span');
+        statusSpan.className = 'timeline-entry-status';
+        if (tl.uploaded) {
+            statusSpan.textContent = 'Uploaded';
+            statusSpan.classList.add('uploaded');
+        } else if (tl.files && tl.files.length > 0) {
+            statusSpan.textContent = 'Loaded (' + tl.files.length + ' files)';
+            statusSpan.classList.add('loaded');
+        } else {
+            statusSpan.textContent = 'Not Loaded';
+        }
+        header.appendChild(statusSpan);
+        card.appendChild(header);
+
+        // Controls row
+        const controls = document.createElement('div');
+        controls.className = 'timeline-entry-controls';
+
+        // ZIP file input
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.zip';
+        fileInput.dataset.timelineId = tl.id;
+        if (tl.uploaded) fileInput.disabled = true;
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                handleTimelineZipSelected(tl.id);
+            }
+        });
+        controls.appendChild(fileInput);
+
+        // POI dropdown
+        const poiSelect = document.createElement('select');
+        poiSelect.className = 'timeline-poi-select';
+        poiSelect.dataset.timelineId = tl.id;
+        if (tl.uploaded) poiSelect.disabled = true;
+
+        // Build POI options
+        const allPois = getPoiList();
+        const assignedIPs = timelines
+            .filter(t => t.id !== tl.id)
+            .map(t => t.assignedPoiIP)
+            .filter(ip => ip && ip !== '0.0.0.0');
+
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '-- Select POI --';
+        poiSelect.appendChild(defaultOption);
+
+        allPois.forEach(poi => {
+            if (!poi.ip || poi.ip === '0.0.0.0') return;
+            // Show this POI if it's available OR if it's already assigned to THIS timeline
+            const isTaken = assignedIPs.includes(poi.ip);
+            const isMine = tl.assignedPoiIP === poi.ip;
+            if (isTaken && !isMine) return;
+
+            const option = document.createElement('option');
+            option.value = poi.ip;
+            option.textContent = poi.label + ' (' + poi.ip + ')';
+            if (tl.assignedPoiIP === poi.ip) {
+                option.selected = true;
+            }
+            poiSelect.appendChild(option);
+        });
+
+        poiSelect.addEventListener('change', function() {
+            handlePoiSelection(tl.id, this.value);
+        });
+        controls.appendChild(poiSelect);
+
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'timeline-remove-btn';
+        removeBtn.textContent = 'Remove';
+        if (tl.uploaded) removeBtn.disabled = true;
+        removeBtn.addEventListener('click', function() {
+            removeTimeline(tl.id);
+        });
+        controls.appendChild(removeBtn);
+
+        card.appendChild(controls);
+        container.appendChild(card);
+    });
+
+    // Update Add Timeline button
+    const addBtn = document.getElementById('add-timeline-btn');
+    if (addBtn) {
+        const availablePois = getAvailablePois();
+        addBtn.disabled = availablePois.length === 0;
+    }
+
+    // Update Clear All button
+    const clearBtn = document.getElementById('magic-bridge-clear');
+    if (clearBtn) {
+        clearBtn.style.display = timelines.length > 0 ? 'inline-block' : 'none';
+    }
+
+    // Update Upload All button
+    const uploadBtn = document.getElementById('magic-bridge-upload');
+    if (uploadBtn) {
+        const hasReadyTimelines = timelines.some(t => t.files && t.files.length > 0 && t.assignedPoiIP && !t.uploaded);
+        uploadBtn.disabled = !hasReadyTimelines;
+    }
+}
+
+// ============================
+//  MULTI-TIMELINE DATA HANDLING
+// ============================
+
+async function handleTimelineZipSelected(timelineId) {
+    const timelines = state.magicBridge.timelines || [];
+    const tl = timelines.find(t => t.id === timelineId);
+    if (!tl) return;
+
+    const statusEl = document.getElementById('upload-status-standalone');
+
+    // Find the file input for this timeline
+    const fileInput = document.querySelector(`input[type="file"][data-timeline-id="${timelineId}"]`);
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+        if (statusEl) {
+            statusEl.textContent = 'No file selected';
+            statusEl.style.color = 'red';
+        }
         return;
     }
-    
+
     const file = fileInput.files[0];
     if (!file.name.toLowerCase().endsWith('.zip')) {
-        statusEl.textContent = 'Please select a ZIP file';
-        statusEl.style.color = 'red';
+        if (statusEl) {
+            statusEl.textContent = 'Please select a ZIP file';
+            statusEl.style.color = 'red';
+        }
         return;
     }
-    
-    console.log('[MagicBridge] Previewing ZIP file:', file.name);
-    statusEl.textContent = 'Reading ZIP for preview...';
-    statusEl.style.color = 'inherit';
-    
+
+    if (statusEl) {
+        statusEl.textContent = `Processing ZIP for ${tl.title || 'Timeline'}...`;
+        statusEl.style.color = 'inherit';
+    }
+
     try {
         const zip = await JSZip.loadAsync(file);
-        
+
         // Parse images.json
         let timelineData = null;
         let imageOrder = null;
         let timingsArray = null;
         let binArrayBuffers = [];
         let mp3BlobUrl = null;
-        
+
         try {
-            const jsonFile = zip.file("images.json");
+            const jsonFile = zip.file('images.json');
             if (jsonFile) {
                 const jsonContent = await jsonFile.async('text');
                 const jsonData = JSON.parse(jsonContent);
                 timelineData = jsonData;
-                console.log('[MagicBridge] images.json parsed:', jsonData.timeline_title || 'Untitled');
-                
+                if (jsonData.timeline_title) {
+                    tl.title = jsonData.timeline_title;
+                }
                 if (jsonData.images_ordered && Array.isArray(jsonData.images_ordered)) {
                     imageOrder = jsonData.images_ordered.map(name => name.split('.')[0]);
                 }
@@ -556,57 +277,56 @@ async function previewTimelineFromZip() {
         } catch (e) {
             console.warn('[MagicBridge] Failed to parse images.json:', e);
         }
-        
+
         if (!timelineData) {
-            statusEl.textContent = 'No images.json found in ZIP';
-            statusEl.style.color = 'orange';
+            if (statusEl) {
+                statusEl.textContent = 'No images.json found in ZIP';
+                statusEl.style.color = 'orange';
+            }
             return;
         }
-        
+
         // Get .bin files
-        const binFiles = Object.values(zip.files).filter(file => {
-            const fileName = file.name.split('/').pop().trim();
-            return !file.dir && /\.bin$/i.test(fileName) && !file.name.includes('__MACOSX/');
+        const binFiles = Object.values(zip.files).filter(f => {
+            const fileName = f.name.split('/').pop().trim();
+            return !f.dir && /\.bin$/i.test(fileName) && !f.name.includes('__MACOSX/');
         });
-        
+
         let orderedBinFiles = [];
         if (imageOrder) {
             const fileMap = {};
-            binFiles.forEach(file => {
-                const fileName = file.name.split('/').pop().trim();
+            binFiles.forEach(f => {
+                const fileName = f.name.split('/').pop().trim();
                 const baseName = fileName.split('.')[0];
-                fileMap[baseName] = file;
+                fileMap[baseName] = f;
             });
             orderedBinFiles = imageOrder.map(baseName => fileMap[baseName]).filter(f => f !== null);
         } else {
             orderedBinFiles = binFiles.sort((a, b) => a.name.localeCompare(b.name));
         }
-        
-        // Extract arraybuffers for TimelinePlayer AND create File objects for upload cache
-        const uploadFiles = (await Promise.all(orderedBinFiles.map(async (file) => {
+
+        // Extract arraybuffers and create File objects
+        const uploadFiles = (await Promise.all(orderedBinFiles.map(async (zf) => {
             try {
-                const arrayBuffer = await file.async('arraybuffer');
+                const arrayBuffer = await zf.async('arraybuffer');
                 if (arrayBuffer) binArrayBuffers.push(arrayBuffer);
             } catch (e) {
-                console.warn('[MagicBridge] Failed to extract binary data from', file.name);
+                console.warn('[MagicBridge] Failed to extract binary from', zf.name);
             }
-            // Also create File object for upload (with its own error handling)
             try {
-                const blob = await file.async('blob');
-                const originalFileName = file.name.split('/').pop().trim();
-                return new File([blob], originalFileName, {
-                    type: 'application/octet-stream'
-                });
+                const blob = await zf.async('blob');
+                const originalFileName = zf.name.split('/').pop().trim();
+                return new File([blob], originalFileName, { type: 'application/octet-stream' });
             } catch (e) {
-                console.warn('[MagicBridge] Failed to create blob from', file.name, e);
+                console.warn('[MagicBridge] Failed to create blob from', zf.name, e);
                 return null;
             }
         }))).filter(f => f !== null);
-        
+
         if (uploadFiles.length === 0) {
             throw new Error('No .bin files found in ZIP archive');
         }
-        
+
         // Extract audio
         try {
             const audioFile = Object.values(zip.files).find(f => {
@@ -616,51 +336,449 @@ async function previewTimelineFromZip() {
             if (audioFile) {
                 const audioBlob = await audioFile.async('blob');
                 mp3BlobUrl = URL.createObjectURL(audioBlob);
-                console.log('[MagicBridge] Audio file extracted:', audioFile.name);
-                statusEl.textContent += ' Audio found.';
             }
         } catch (e) {
             console.warn('[MagicBridge] No audio extracted');
         }
-        
-        // Populate ZIP cache for later upload
-        zipCache.files = uploadFiles;
-        zipCache.timingsArray = timingsArray;
-        zipCache.timelineData = timelineData;
-        zipCache.binArrayBuffers = binArrayBuffers;
-        zipCache.mp3BlobUrl = mp3BlobUrl;
-        zipCache.isLoaded = true;
-        
-        // Show file list for upload
-        document.getElementById('file-list').style.display = 'block';
-        document.getElementById('file-names').innerHTML = uploadFiles
-            .map(f => `<li>${f.name}</li>`)
-            .join('');
-        
-        statusEl.textContent = `Loaded ${binArrayBuffers.length} images. Initializing timeline...`;
-        
-        // Initialize TimelinePlayer
-        if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
-            try {
-                TimelinePlayer.setAudioUrl(mp3BlobUrl);
-                // Await the async loadTimelineData to catch any errors
-                await TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
-                console.log('[MagicBridge] TimelinePlayer initialized from ZIP preview');
-                statusEl.textContent = `Timeline ready: ${binArrayBuffers.length} images loaded.`;
-                statusEl.style.color = '#90c695';
-            } catch (tlErr) {
-                console.error('[MagicBridge] TimelinePlayer init failed:', tlErr);
-                statusEl.textContent = 'Timeline init failed: ' + tlErr.message;
-                statusEl.style.color = 'red';
+
+        // Store data in timeline entry
+        tl.files = uploadFiles;
+        tl.timingsArray = timingsArray;
+        tl.timelineData = timelineData;
+        tl.binArrayBuffers = binArrayBuffers;
+        tl.audioUrl = mp3BlobUrl;
+        tl.uploaded = false;
+
+        // If this is the FIRST timeline, populate zipCache for TimelinePlayer
+        const isFirstTimeline = timelines.indexOf(tl) === 0;
+        if (isFirstTimeline) {
+            zipCache.files = uploadFiles;
+            zipCache.timingsArray = timingsArray;
+            zipCache.timelineData = timelineData;
+            zipCache.binArrayBuffers = binArrayBuffers;
+            zipCache.mp3BlobUrl = mp3BlobUrl;
+            zipCache.isLoaded = true;
+
+            // Initialize TimelinePlayer for preview
+            if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
+                try {
+                    TimelinePlayer.setAudioUrl(mp3BlobUrl);
+                    await TimelinePlayer.loadTimelineData(timelineData, binArrayBuffers);
+                    console.log('[MagicBridge] TimelinePlayer initialized from timeline:', tl.id);
+                    if (statusEl) {
+                        statusEl.textContent = `Timeline ready: ${binArrayBuffers.length} images loaded.`;
+                        statusEl.style.color = '#90c695';
+                    }
+                } catch (tlErr) {
+                    console.error('[MagicBridge] TimelinePlayer init failed:', tlErr);
+                    if (statusEl) {
+                        statusEl.textContent = 'Timeline init failed: ' + tlErr.message;
+                        statusEl.style.color = 'red';
+                    }
+                }
             }
         } else {
-            console.warn('[MagicBridge] TimelinePlayer not available');
-            statusEl.textContent = 'TimelinePlayer not available';
+            if (statusEl) {
+                statusEl.textContent = `${tl.title || 'Timeline'}: ${binArrayBuffers.length} images loaded.`;
+                statusEl.style.color = '#90c695';
+            }
         }
-        
+
+        saveState();
+        rebuildTimelineUI();
+
     } catch (error) {
-        console.error('[MagicBridge] ZIP preview failed:', error);
-        statusEl.textContent = 'Failed to read ZIP: ' + error.message;
-        statusEl.style.color = 'red';
+        console.error('[MagicBridge] ZIP processing failed:', error);
+        if (statusEl) {
+            statusEl.textContent = 'Failed to read ZIP: ' + error.message;
+            statusEl.style.color = 'red';
+        }
     }
+}
+
+// ============================
+//   MULTI-TIMELINE MANAGEMENT
+// ============================
+
+function addTimeline() {
+    const timelines = state.magicBridge.timelines || [];
+    const availablePois = getAvailablePois();
+    if (availablePois.length === 0) {
+        const statusEl = document.getElementById('upload-status-standalone');
+        if (statusEl) {
+            statusEl.textContent = 'No available POIs to assign';
+            statusEl.style.color = 'orange';
+        }
+        return;
+    }
+
+    const newId = 'tl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    timelines.push({
+        id: newId,
+        title: null,
+        files: null,
+        timingsArray: null,
+        timelineData: null,
+        binArrayBuffers: [],
+        audioUrl: null,
+        assignedPoiIP: null,
+        assignedPoiLabel: null,
+        uploaded: false
+    });
+
+    saveState();
+    rebuildTimelineUI();
+
+    // Scroll to the new entry
+    const container = document.getElementById('timeline-entries-container');
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+function removeTimeline(timelineId) {
+    const timelines = state.magicBridge.timelines || [];
+    const index = timelines.findIndex(t => t.id === timelineId);
+    if (index === -1) return;
+
+    const removedTl = timelines[index];
+    timelines.splice(index, 1);
+
+    // If it was the first timeline, reset TimelinePlayer
+    if (index === 0) {
+        zipCache.files = null;
+        zipCache.timingsArray = null;
+        zipCache.timelineData = null;
+        zipCache.binArrayBuffers = [];
+        zipCache.mp3BlobUrl = null;
+        zipCache.isLoaded = false;
+        if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.reset === 'function') {
+            TimelinePlayer.reset();
+        }
+        // If there's a new first timeline with data, load it
+        if (timelines.length > 0 && timelines[0].files && timelines[0].files.length > 0) {
+            const newFirst = timelines[0];
+            zipCache.files = newFirst.files;
+            zipCache.timingsArray = newFirst.timingsArray;
+            zipCache.timelineData = newFirst.timelineData;
+            zipCache.binArrayBuffers = newFirst.binArrayBuffers;
+            zipCache.mp3BlobUrl = newFirst.audioUrl;
+            zipCache.isLoaded = true;
+            if (typeof TimelinePlayer !== 'undefined' && typeof TimelinePlayer.loadTimelineData === 'function') {
+                TimelinePlayer.setAudioUrl(newFirst.audioUrl);
+                TimelinePlayer.loadTimelineData(newFirst.timelineData, newFirst.binArrayBuffers)
+                    .catch(e => console.warn('[MagicBridge] Failed to load new first timeline:', e));
+            }
+        }
+    }
+
+    // Clean up audio URL
+    if (removedTl.audioUrl) {
+        URL.revokeObjectURL(removedTl.audioUrl);
+    }
+
+    saveState();
+    rebuildTimelineUI();
+
+    const statusEl = document.getElementById('upload-status-standalone');
+    if (statusEl) {
+        statusEl.textContent = 'Timeline removed';
+        statusEl.style.color = 'inherit';
+        setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+    }
+}
+
+function handlePoiSelection(timelineId, ip) {
+    const timelines = state.magicBridge.timelines || [];
+    const tl = timelines.find(t => t.id === timelineId);
+    if (!tl) return;
+
+    if (ip) {
+        tl.assignedPoiIP = ip;
+        tl.assignedPoiLabel = getPoiLabel(ip);
+    } else {
+        tl.assignedPoiIP = null;
+        tl.assignedPoiLabel = null;
+    }
+
+    saveState();
+    rebuildTimelineUI();
+}
+
+// ============================
+//     MULTI-TIMELINE UPLOAD
+// ============================
+
+async function uploadAllTimelines() {
+    const statusEl = document.getElementById('upload-status-standalone');
+    const uploadBtn = document.getElementById('magic-bridge-upload');
+    const timelines = state.magicBridge.timelines || [];
+
+    const readyTimelines = timelines.filter(t => t.files && t.files.length > 0 && t.assignedPoiIP && !t.uploaded);
+    if (readyTimelines.length === 0) {
+        if (statusEl) {
+            statusEl.textContent = 'No timelines ready for upload. Load ZIP and assign POI first.';
+            statusEl.style.color = 'orange';
+        }
+        return;
+    }
+
+    if (uploadBtn) uploadBtn.disabled = true;
+    if (statusEl) {
+        statusEl.textContent = 'Starting upload of ' + readyTimelines.length + ' timeline(s)...';
+        statusEl.style.color = 'inherit';
+    }
+
+    let allSuccess = true;
+
+    for (const tl of readyTimelines) {
+        const label = tl.assignedPoiLabel || tl.assignedPoiIP;
+        if (statusEl) {
+            statusEl.textContent = `Uploading to ${label}...`;
+        }
+
+        try {
+            // Verify connectivity first
+            let connected = false;
+            try {
+                connected = await verifyPoiConnectionMB(tl.assignedPoiIP);
+            } catch (e) {
+                connected = false;
+            }
+
+            if (!connected) {
+                console.warn(`[MagicBridge] ${label} not reachable, skipping`);
+                if (statusEl) {
+                    statusEl.textContent = `${label} not reachable, skipping...`;
+                    statusEl.style.color = 'orange';
+                }
+                allSuccess = false;
+                continue;
+            }
+
+            // Upload timings first if available
+            if (tl.timingsArray) {
+                const adjustedTimings = adjustTimingsArray(tl.timingsArray, tl.files.length);
+                try {
+                    await uploadTimingsToPoi(adjustedTimings, tl.assignedPoiIP, label);
+                } catch (e) {
+                    console.warn(`[MagicBridge] Timings upload to ${label} failed, continuing:`, e);
+                }
+            }
+
+            // Upload .bin files
+            await uploadToPoiWithProgress(tl.files, tl.assignedPoiIP, label);
+
+            tl.uploaded = true;
+            if (statusEl) {
+                statusEl.textContent = `${label}: ${tl.files.length} files uploaded successfully.`;
+                statusEl.style.color = 'green';
+            }
+
+        } catch (error) {
+            console.error(`[MagicBridge] Upload failed for ${label}:`, error);
+            if (statusEl) {
+                statusEl.textContent = `Upload failed for ${label}: ${error.message}`;
+                statusEl.style.color = 'red';
+            }
+            allSuccess = false;
+        }
+    }
+
+    saveState();
+    rebuildTimelineUI();
+
+    if (uploadBtn) uploadBtn.disabled = false;
+
+    if (allSuccess && statusEl) {
+        statusEl.textContent = 'All timelines uploaded successfully!';
+        statusEl.style.color = 'green';
+    }
+}
+
+// ============================
+//     POI CONNECTIVITY
+// ============================
+
+async function verifyPoiConnectionMB(ip) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    abortControllers.push(controller);
+
+    try {
+        await fetch(`http://${ip}/edit`, {
+            method: 'HEAD',
+            mode: 'no-cors',
+            signal: controller.signal
+        });
+        return true;
+    } catch (error) {
+        try {
+            await fetch(`http://${ip}/get-pixels`, {
+                method: 'GET',
+                mode: 'no-cors',
+                signal: controller.signal
+            });
+            return true;
+        } catch (e) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onerror = () => resolve(true);
+                img.onabort = () => resolve(false);
+                setTimeout(() => resolve(false), 2000);
+                img.src = `http://${ip}/favicon.ico?t=${Date.now()}`;
+            });
+        }
+    } finally {
+        clearTimeout(timeoutId);
+        const index = abortControllers.indexOf(controller);
+        if (index > -1) abortControllers.splice(index, 1);
+    }
+}
+
+// ============================
+//       UPLOAD HELPERS
+// ============================
+
+async function uploadToPoiWithProgress(files, ip, label) {
+    const statusEl = document.getElementById('upload-status-standalone');
+    const config = state.magicBridge.CONFIG;
+
+    try {
+        const batchCount = Math.ceil(files.length / config.BATCH_SIZE);
+
+        for (let batchIndex = 0; batchIndex < batchCount; batchIndex++) {
+            const batchStart = batchIndex * config.BATCH_SIZE;
+            const batchFiles = files.slice(batchStart, batchStart + config.BATCH_SIZE);
+
+            if (statusEl) {
+                statusEl.textContent = `Uploading to ${label}: Batch ${batchIndex + 1}/${batchCount}`;
+            }
+
+            for (let fileIndex = 0; fileIndex < batchFiles.length; fileIndex++) {
+                const file = batchFiles[fileIndex];
+                const targetName = generateUploadBinFilename(batchStart + fileIndex);
+                const formData = new FormData();
+                formData.append('file', file, targetName);
+
+                await fetchWithAbort(`http://${ip}/edit`, {
+                    method: 'POST',
+                    body: formData
+                });
+                await delay(config.INTER_FILE_DELAY);
+            }
+
+            if (batchIndex < batchCount - 1) {
+                await delay(config.INTER_BATCH_DELAY);
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error('POI Upload Failure:', {
+            ip,
+            error: error.message,
+            stack: error.stack
+        });
+        throw error;
+    }
+}
+
+async function uploadTimingsToPoi(timingsArray, ip, label) {
+    const statusEl = document.getElementById('upload-status-standalone');
+    if (!timingsArray || !Array.isArray(timingsArray)) {
+        console.log('No timings array provided, skipping timings upload');
+        return;
+    }
+
+    try {
+        if (statusEl) {
+            statusEl.textContent = `Uploading timings to ${label}...`;
+        }
+
+        const jsonBody = JSON.stringify(timingsArray);
+        const response = await fetchWithAbort(`http://${ip}/timings`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `body=${encodeURIComponent(jsonBody)}`
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('Content-Type') || '';
+        if (contentType.includes('text/html') || contentType.includes('text/plain')) {
+            console.warn(`Timings endpoint on ${label} returned non-JSON response (likely not supported by this POI firmware)`);
+            if (statusEl) {
+                statusEl.textContent = `Timings skipped for ${label} (endpoint may not support timings)`;
+            }
+            return;
+        }
+
+        const result = await response.json();
+        console.log('Timings upload result:', result);
+        if (statusEl) {
+            statusEl.textContent = `Timings uploaded to ${label} successfully`;
+        }
+    } catch (error) {
+        console.error(`Failed to upload timings to ${label}:`, error);
+        if (statusEl) {
+            statusEl.textContent = `Timings upload to ${label} failed: ${error.message}`;
+        }
+    }
+}
+
+function adjustTimingsArray(timingsArray, targetLength) {
+    if (timingsArray.length === targetLength) {
+        return timingsArray;
+    }
+
+    if (timingsArray.length > targetLength) {
+        return timingsArray.slice(0, targetLength);
+    }
+
+    const result = [...timingsArray];
+    const lastTiming = result[result.length - 1];
+    let lastInterval = result.length >= 2 ? lastTiming - result[result.length - 2] : 1000;
+
+    while (result.length < targetLength) {
+        result.push(lastTiming + lastInterval * (result.length - timingsArray.length + 1));
+    }
+    return result;
+}
+
+// ============================
+//      EVENT LISTENERS
+// ============================
+
+function setupMagicBridgeListeners() {
+    const addBtn = document.getElementById('add-timeline-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', addTimeline);
+    }
+
+    const uploadBtn = document.getElementById('magic-bridge-upload');
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', uploadAllTimelines);
+    }
+
+    const clearBtn = document.getElementById('magic-bridge-clear');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearUpload);
+    }
+}
+
+// Auto-setup on DOMContentLoaded if not already loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupMagicBridgeListeners);
+} else {
+    setupMagicBridgeListeners();
+}
+
+// Initial UI build on load
+if (typeof state !== 'undefined' && state.magicBridge && state.magicBridge.timelines) {
+    setTimeout(rebuildTimelineUI, 200);
 }
