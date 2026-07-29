@@ -1,25 +1,29 @@
 /**
- * Timeline Player Module
+ * Timeline Player Module - Multi-Timeline Edition
  * Handles timeline playback for Smart Magic Bridge
- * Decompresses .bin files for local preview and sends pattern commands to POIs
+ * Decompresses .bin files for local preview and sends pattern commands to assigned POIs
+ * Supports MULTIPLE timelines each targeting a different POI
  */
 const TimelinePlayer = (function() {
     'use strict';
 
     // Module state
     const _state = {
-        // Timeline data from images.json
+        // Array of ALL timeline data objects
+        allTimelines: [],
+
+        // First timeline data (drives transport: audio, image strip, time markers, duration)
         timelineId: null,
         timelineTitle: null,
         imagesOrdered: [],
         times: [],
         mp3Filename: null,
         mp3Duration: 0,
-        
-        // Raw .bin binary data for preview (array of ArrayBuffer/Uint8Array)
+
+        // Raw .bin binary data for preview (array of ArrayBuffer/Uint8Array) - from first timeline
         binFiles: [],
         decompressedPreviews: [], // Array of data URLs for preview
-        
+
         // Playback state
         isPlaying: false,
         isPaused: false,
@@ -28,11 +32,11 @@ const TimelinePlayer = (function() {
         currentTime: 0,
         currentIndex: -1,
         animationFrameId: null,
-        
-        // Audio
+
+        // Audio (from first timeline only)
         audioElement: null,
         audioUrl: null,
-        
+
         // Elements (cached)
         els: {}
     };
@@ -54,7 +58,9 @@ const TimelinePlayer = (function() {
         timeMarkers: () => document.getElementById('tl-time-markers'),
         audio: () => document.getElementById('tl-audio'),
         poiStatus: () => document.getElementById('tl-poi-status'),
-        status: () => document.getElementById('tl-status')
+        status: () => document.getElementById('tl-status'),
+        multiTimelineStatus: () => document.getElementById('multi-timeline-status'),
+        multiTimelineAssignments: () => document.getElementById('multi-timeline-assignments')
     };
 
     /**
@@ -63,21 +69,20 @@ const TimelinePlayer = (function() {
     function init() {
         cacheElements();
         setupEventListeners();
-        
-        // Show the timeline section framework immediately (visible whenever tab is active)
+
+        // Show the timeline section framework immediately
         const section = E.section();
         if (section) {
             section.style.display = 'block';
-            // Show placeholder if no data loaded yet
             if (!_state.times || _state.times.length === 0) {
-                showStatus('Load a timeline ZIP above and click "Upload to POI" to start', 'info');
+                showStatus('Load timeline ZIPs and click play to start', 'info');
             }
         }
-        
-        // Check POI connectivity
+
+        // Check POI connectivity for all assigned POIs
         checkPoiConnectivity();
-        
-        console.log('TimelinePlayer initialized');
+
+        console.log('[TimelinePlayer] Initialized (Multi-Timeline Edition)');
     }
 
     function cacheElements() {
@@ -103,18 +108,46 @@ const TimelinePlayer = (function() {
 
     /**
      * Load timeline data from processed ZIP
-     * Called from magic-bridge.js after ZIP is processed
+     * Now takes an ARRAY of timeline data objects for multi-timeline support
+     * Called from magic-bridge.js after ZIPs are processed
+     * @param {Array} timelinesArray - Array of { times, imagesOrdered, binFiles, assignedPoiIP, assignedPoiLabel, title }
+     * @param {Array} binFilesArray - (Legacy) binary files for first timeline
      */
-    async function loadTimelineData(timelineData, binFilesArray) {
-        console.log('[TimelinePlayer] loadTimelineData called - images_ordered:', timelineData?.images_ordered?.length, 'times:', timelineData?.times?.length, 'binFiles:', binFilesArray?.length);
-        _state.timelineId = timelineData.timeline_id || null;
-        _state.timelineTitle = timelineData.timeline_title || 'Untitled Timeline';
-        _state.imagesOrdered = timelineData.images_ordered || [];
-        _state.times = timelineData.times || [];
-        _state.mp3Filename = timelineData.mp3_filename || null;
-        _state.mp3Duration = timelineData.mp3_duration || 0;
+    async function loadTimelineData(timelinesArray, binFilesArray) {
+        console.log('[TimelinePlayer] loadTimelineData called - timelines:', timelinesArray?.length);
+
+        // Reset first timeline data
+        _state.timelineId = null;
+        _state.timelineTitle = null;
+        _state.imagesOrdered = [];
+        _state.times = [];
+        _state.mp3Filename = null;
+        _state.mp3Duration = 0;
         _state.binFiles = binFilesArray || [];
-        _state.decompressedImages = [];
+        _state.decompressedPreviews = [];
+
+        // Store all timelines
+        _state.allTimelines = timelinesArray || [];
+
+        // Use the FIRST timeline to drive transport (audio, image strip, duration)
+        const firstTl = Array.isArray(timelinesArray) && timelinesArray.length > 0 ? timelinesArray[0] : null;
+
+        if (firstTl && firstTl.timelineData) {
+            const data = firstTl.timelineData;
+            _state.timelineId = data.timeline_id || null;
+            _state.timelineTitle = data.timeline_title || firstTl.title || 'Untitled Timeline';
+            _state.imagesOrdered = data.images_ordered || [];
+            _state.times = data.times || [];
+            _state.mp3Filename = data.mp3_filename || null;
+            _state.mp3Duration = data.mp3_duration || 0;
+            _state.binFiles = firstTl.binArrayBuffers || binFilesArray || [];
+        } else if (firstTl && firstTl.times) {
+            // Direct properties (already extracted)
+            _state.timelineTitle = firstTl.title || 'Untitled Timeline';
+            _state.imagesOrdered = firstTl.imagesOrdered || [];
+            _state.times = firstTl.times || [];
+            _state.binFiles = firstTl.binFiles || binFilesArray || [];
+        }
 
         // Reset playback state
         stop();
@@ -122,15 +155,15 @@ const TimelinePlayer = (function() {
         _state.currentIndex = -1;
 
         if (_state.imagesOrdered.length === 0 || _state.times.length === 0) {
-            showStatus('No timeline data found in ZIP', 'warning');
+            showStatus('No timeline data found in first timeline', 'warning');
             return;
         }
 
         // Update UI info
         const titleEl = E.title();
         const durationEl = E.duration();
-        if (titleEl) titleEl.textContent = _state.timelineTitle || `Timeline #${_state.timelineId}`;
-        
+        if (titleEl) titleEl.textContent = _state.timelineTitle || `Timeline`;
+
         const totalDuration = _state.times.length > 0 ? _state.times[_state.times.length - 1] : 0;
         if (durationEl) durationEl.textContent = ` | Duration: ${formatTime(totalDuration)}`;
 
@@ -143,21 +176,24 @@ const TimelinePlayer = (function() {
         // Decompress .bin files for preview
         await decompressAllImages();
 
-        // Build the image strip
+        // Build the image strip (from first timeline)
         buildImageStrip();
 
-        // Setup time markers
+        // Setup time markers (from first timeline)
         setupTimeMarkers();
 
-        // Setup audio if mp3 is available
+        // Setup audio if mp3 is available (from first timeline)
         if (_state.mp3Filename && _state.audioUrl) {
             setupAudio();
         }
 
-        // Check POI connectivity
+        // Update multi-timeline assignments display
+        updateMultiTimelineAssignments();
+
+        // Check POI connectivity for all assigned POIs
         checkPoiConnectivity();
 
-        showStatus(`Timeline ready - ${_state.imagesOrdered.length} images`, 'info');
+        showStatus(`Timeline ready - ${_state.imagesOrdered.length} images. ${_state.allTimelines.length} timeline(s) loaded for playback.`, 'info');
     }
 
     /**
@@ -175,11 +211,7 @@ const TimelinePlayer = (function() {
     }
 
     /**
-     * Decompress all .bin files using Jimp for preview
-     */
-    /**
-     * Decompress all .bin files using the SAME format as image-processing.js
-     * Uses canvas-based rendering (no Jimp dependency needed for preview)
+     * Decompress all .bin files using canvas-based rendering
      */
     async function decompressAllImages() {
         _state.decompressedPreviews = [];
@@ -189,14 +221,14 @@ const TimelinePlayer = (function() {
                 const data = new Uint8Array(_state.binFiles[i]);
                 const width = getPixelWidth();
                 const height = Math.ceil(data.length / width);
-                
+
                 // Create canvas and decode pixels matching the POI format
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 const imageData = ctx.createImageData(width, height);
-                
+
                 for (let y = 0; y < height; y++) {
                     for (let x = 0; x < width; x++) {
                         const dataIndex = y * width + x;
@@ -219,7 +251,7 @@ const TimelinePlayer = (function() {
 
                 _state.decompressedPreviews.push(canvas.toDataURL());
             } catch (err) {
-                console.error('Failed to decompress image', i, err);
+                console.error('[TimelinePlayer] Failed to decompress image', i, err);
                 _state.decompressedPreviews.push(null);
             }
         }
@@ -236,10 +268,7 @@ const TimelinePlayer = (function() {
     }
 
     /**
-     * Build the image strip in the timeline
-     */
-    /**
-     * Build the image strip showing previews of all timeline frames
+     * Build the image strip showing previews of all timeline frames (from first timeline)
      */
     function buildImageStrip() {
         const strip = E.imageStrip();
@@ -274,7 +303,7 @@ const TimelinePlayer = (function() {
     }
 
     /**
-     * Setup time markers below the progress bar
+     * Setup time markers below the progress bar (from first timeline)
      */
     function setupTimeMarkers() {
         const container = E.timeMarkers();
@@ -298,11 +327,34 @@ const TimelinePlayer = (function() {
         });
     }
 
+    /**
+     * Update the multi-timeline assignments display
+     */
+    function updateMultiTimelineAssignments() {
+        const container = E.multiTimelineAssignments();
+        if (!container) return;
+        container.innerHTML = '';
+
+        const timelines = _state.allTimelines || [];
+        if (timelines.length === 0) return;
+
+        timelines.forEach((tl, index) => {
+            const label = tl.assignedPoiLabel || getPoiLabel(tl.assignedPoiIP) || 'Unknown';
+            const title = tl.title || `Timeline ${index + 1}`;
+            const ip = tl.assignedPoiIP || 'Not assigned';
+
+            const item = document.createElement('div');
+            item.className = 'timeline-assignment-item';
+            item.innerHTML = `<span class="tl-assign-title">${title}</span> <span class="tl-assign-poi">→ ${label} (${ip})</span>`;
+            container.appendChild(item);
+        });
+    }
+
     // ========== Playback Controls ==========
 
     function play() {
         if (_state.isPlaying) return;
-        
+
         if (_state.times.length === 0) {
             showStatus('No timeline data loaded', 'warning');
             return;
@@ -322,26 +374,27 @@ const TimelinePlayer = (function() {
             _state.currentIndex = -1;
         }
 
-        // Start audio if available
+        // Start audio if available (first timeline)
         const audioEl = E.audio();
         if (audioEl && _state.audioUrl) {
             audioEl.currentTime = _state.currentTime / 1000;
-            audioEl.play().catch(e => console.log('Audio play failed:', e));
+            audioEl.play().catch(e => console.log('[TimelinePlayer] Audio play failed:', e));
         }
 
-        // Send the current frame to POIs immediately when playback starts
+        // Send the current frame for ALL timelines to their assigned POIs immediately
         if (_state.currentIndex >= 0) {
-            sendPatternToPOIs(_state.currentIndex);
+            // Send current pattern for each timeline to its assigned POI
+            sendPatternsForAllTimelines(_state.currentIndex);
         } else {
-            // First frame - send immediately
+            // First frame - find index and send
             const startIndex = findIndexForTime(_state.currentTime);
             if (startIndex >= 0) {
                 _state.currentIndex = startIndex;
-                sendPatternToPOIs(startIndex);
+                sendPatternsForAllTimelines(startIndex);
                 highlightCurrentFrame(startIndex);
             }
         }
-        
+
         _state.startTime = performance.now() - _state.currentTime;
         _state.animationFrameId = requestAnimationFrame(updatePlayback);
 
@@ -350,7 +403,7 @@ const TimelinePlayer = (function() {
 
     function pause() {
         if (!_state.isPlaying) return;
-        
+
         _state.isPlaying = false;
         _state.isPaused = true;
         _state.pausedTime = _state.currentTime;
@@ -406,36 +459,44 @@ const TimelinePlayer = (function() {
         _state.mp3Filename = null;
         _state.mp3Duration = 0;
         _state.binFiles = [];
-        _state.decompressedImages = [];
         _state.decompressedPreviews = [];
         _state.pausedTime = 0;
         _state.audioUrl = null;
         _state.totalDuration = 0;
-        
+        _state.allTimelines = [];
+
         // Clear image strip
         const strip = E.imageStrip();
         if (strip) strip.innerHTML = '';
-        
+
         // Clear time markers
         const markers = E.timeMarkers();
         if (markers) markers.innerHTML = '';
-        
+
+        // Clear multi-timeline assignments
+        const assignments = E.multiTimelineAssignments();
+        if (assignments) assignments.innerHTML = '';
+
+        // Clear multi-timeline status
+        const multiStatus = E.multiTimelineStatus();
+        if (multiStatus) multiStatus.innerHTML = '';
+
         // Reset time display
         const timeEl = E.timeDisplay();
         if (timeEl) timeEl.textContent = '00:00.000';
-        
+
         // Reset progress
         const fill = E.progressFill();
         if (fill) fill.style.width = '0%';
         const thumb = E.progressThumb();
         if (thumb) thumb.style.left = '0%';
-        
+
         // Reset title and duration
         const titleEl = E.title();
         if (titleEl) titleEl.textContent = '';
         const durEl = E.duration();
         if (durEl) durEl.textContent = '';
-        
+
         // Revoke audio URL if set
         const audioEl = E.audio();
         if (audioEl) {
@@ -443,10 +504,11 @@ const TimelinePlayer = (function() {
             audioEl.src = '';
             audioEl.load();
         }
-        
+
         showStatus('Timeline cleared', 'info');
         updatePoiStatus('offline', 'Not connected');
     }
+
     function restart() {
         stop();
         _state.currentTime = 0;
@@ -479,9 +541,9 @@ const TimelinePlayer = (function() {
             audioEl.currentTime = timeMs / 1000;
         }
 
-        // Send the pattern command for this frame
+        // Send the pattern for this frame to ALL timelines' assigned POIs
         if (_state.currentIndex >= 0) {
-            sendPatternToPOIs(_state.currentIndex);
+            sendPatternsForAllTimelines(_state.currentIndex);
         }
 
         updateUI();
@@ -500,19 +562,18 @@ const TimelinePlayer = (function() {
         const totalDuration = getTotalDuration();
 
         // Cap at totalDuration so findIndexForTime can locate the last frame
-        // before we finish playback
         const effectiveTime = Math.min(_state.currentTime, totalDuration);
 
-        // Check if we need to advance to the next image (BEFORE completion check,
-        // so the last frame's pattern is sent before playback finishes)
+        // Check if we need to advance to the next image
         const newIndex = findIndexForTime(effectiveTime);
         if (newIndex !== _state.currentIndex && newIndex >= 0) {
             _state.currentIndex = newIndex;
-            sendPatternToPOIs(newIndex);
+            // Send patterns for ALL timelines to their assigned POIs
+            sendPatternsForAllTimelines(newIndex);
             highlightCurrentFrame(newIndex);
         }
 
-        // Check if playback is complete (after sending last pattern)
+        // Check if playback is complete
         if (_state.currentTime >= totalDuration) {
             _state.currentTime = totalDuration;
             updateUI();
@@ -548,94 +609,133 @@ const TimelinePlayer = (function() {
         showStatus('Playback complete', 'info');
     }
 
-    // ========== POI Communication ==========
+    // ========== Multi-Timeline POI Communication ==========
 
     /**
-     * Send pattern command to all connected POIs
-     * Uses the established /pattern?patternChooserChange=${index} endpoint
+     * Send pattern command to ALL timelines' assigned POIs
+     * Each timeline sends its current frame pattern to its assigned POI only
+     * @param {number} index - The frame index in the first timeline (used to find per-timeline frames)
+     */
+    function sendPatternsForAllTimelines(index) {
+        const timelines = _state.allTimelines || [];
+        if (timelines.length === 0) {
+            console.log('[TimelinePlayer] No timelines loaded, skipping pattern send');
+            updatePoiStatus('offline', 'No timelines loaded');
+            return;
+        }
+
+        let sentCount = 0;
+
+        timelines.forEach((tl) => {
+            const ip = tl.assignedPoiIP;
+            if (!ip || ip === '0.0.0.0') {
+                console.log(`[TimelinePlayer] ${tl.title || 'Timeline'} has no assigned POI, skipping`);
+                return;
+            }
+
+            // Find the correct frame index for THIS timeline's times array
+            const tlIndex = findTimelineFrameIndex(tl, _state.currentTime);
+            if (tlIndex < 0) return;
+
+            const pattern = tlIndex + 8; // Pattern 8 = a.bin (index 0), 9 = b.bin (index 1), etc.
+            sendPatternToPOI(pattern, ip);
+            sentCount++;
+        });
+
+        if (sentCount > 0) {
+            updatePoiStatus('online', `Sending to ${sentCount} POI(s)`);
+        }
+
+        // Update multi-timeline status display
+        updateMultiTimelineStatus();
+    }
+
+    /**
+     * Find the frame index for a specific timeline at a given time
+     * Uses the timeline's own timings array
+     * @param {Object} tl - Timeline object with its times array
+     * @param {number} timeMs - Current time in milliseconds
+     * @returns {number} - Frame index or -1 if not found
+     */
+    function findTimelineFrameIndex(tl, timeMs) {
+        const times = tl.times || [];
+        if (times.length === 0) return 0; // No timing info, assume frame 0
+
+        let index = -1;
+        for (let i = 0; i < times.length; i++) {
+            if (times[i] <= timeMs) {
+                index = i;
+            } else {
+                break;
+            }
+        }
+        return index;
+    }
+
+    /**
+     * Send pattern command to ONE specific POI
+     * @param {number} pattern - Pattern number (index + 8)
+     * @param {string} ip - Target POI IP address
      */
     // Rate limiter: prevent sending the same pattern more than once per interval
     const _lastSendTime = {}; // { 'pattern_ip': timestamp }
     const SEND_COOLDOWN = 800; // ms - minimum gap between sends of same pattern to same POI
-    
-    function sendPatternToPOIs(index) {
-        const pattern = index + 8; // Pattern 8 = a.bin (index 0), 9 = b.bin (index 1), etc. Matches Image Management
-        
-        // Get all connected POI IPs
-        const ips = getConnectedPoiIPs();
-        
-        if (ips.length === 0) {
-            console.log('[TimelinePlayer] No POIs connected, skipping pattern send');
-            updatePoiStatus('offline', 'No POIs connected');
-            return;
-        }
-        
-        // Rate limit check: skip if we already sent this pattern to these IPs recently
+
+    function sendPatternToPOI(pattern, ip) {
+        if (!ip || ip === '0.0.0.0') return;
+
+        // Rate limit check
         const now = Date.now();
-        let allSkipped = true;
-        for (const ip of ips) {
-            const key = `${pattern}_${ip}`;
-            const lastTime = _lastSendTime[key] || 0;
-            if (now - lastTime >= SEND_COOLDOWN) {
-                allSkipped = false;
-                break;
-            }
-        }
-        if (allSkipped) {
-            console.log(`[TimelinePlayer] ⏱ Skipping pattern ${pattern} (all IPs on cooldown, ${SEND_COOLDOWN}ms)`);
+        const key = `${pattern}_${ip}`;
+        const lastTime = _lastSendTime[key] || 0;
+        if (now - lastTime < SEND_COOLDOWN) {
+            console.log(`[TimelinePlayer] ⏱ Skipping pattern ${pattern} to ${ip} (cooldown)`);
             return;
         }
-        
-        // Mark all IPs as sent IMMEDIATELY (before any async work) to prevent duplicate sends
-        for (const ip of ips) {
-            _lastSendTime[`${pattern}_${ip}`] = now;
-        }
-        
-        console.log(`[TimelinePlayer] Sending pattern ${pattern} (image index ${index}) to ${ips.length} POI(s):`, ips);
-        
-        let successCount = 0;
-        const totalIps = ips.length;
-        
-        // Send simultaneously to all POIs for sync
-        Promise.all(ips.map(async (ip) => {
-            const url = `http://${ip}/pattern?patternChooserChange=${pattern}`;
-            console.log(`[TimelinePlayer] → GET ${url}`);
-            
-            try {
-                const response = await fetch(url, {
-                    method: 'GET',
-                    signal: AbortSignal.timeout(5000) // 5 second timeout
-                });
-                console.log(`[TimelinePlayer] ✓ ${ip} responded: ${response.status}`);
-                successCount++;
-                if (successCount === totalIps) {
-                    updatePoiStatus('online', `${totalIps} POI(s) synced (pattern ${pattern})`);
-                }
-            } catch (err) {
-                console.log(`[TimelinePlayer] ✗ ${ip} failed:`, err.message);
-            }
-        }));
-        
-        updatePoiStatus('online', `Sending pattern ${pattern} to ${totalIps} POI(s)...`);
+        _lastSendTime[key] = now;
+
+        console.log(`[TimelinePlayer] Sending pattern ${pattern} to POI ${ip}`);
+
+        const url = `http://${ip}/pattern?patternChooserChange=${pattern}`;
+        fetch(url, {
+            method: 'GET',
+            signal: AbortSignal.timeout(5000)
+        }).then(response => {
+            console.log(`[TimelinePlayer] ✓ ${ip} responded: ${response.status}`);
+        }).catch(err => {
+            console.log(`[TimelinePlayer] ✗ ${ip} failed:`, err.message);
+        });
     }
 
     /**
-     * Get all connected POI IP addresses
+     * Get all connected POI IP addresses from all timelines
      */
     function getConnectedPoiIPs() {
-        if (typeof getPoiIPs === 'function') {
-            return getPoiIPs().filter(ip => ip && ip !== '0.0.0.0');
+        const timelines = _state.allTimelines || [];
+        const ips = new Set();
+        timelines.forEach(tl => {
+            if (tl.assignedPoiIP && tl.assignedPoiIP !== '0.0.0.0') {
+                ips.add(tl.assignedPoiIP);
+            }
+        });
+
+        if (ips.size > 0) {
+            return Array.from(ips);
         }
+
         // Fallback: try to get IPs from global state
         if (typeof state !== 'undefined' && state.poiIPs) {
-            const ips = [];
-            if (state.poiIPs.mainIP && state.poiIPs.mainIP !== '0.0.0.0') ips.push(state.poiIPs.mainIP);
-            if (state.poiIPs.auxIP && state.poiIPs.auxIP !== '0.0.0.0') ips.push(state.poiIPs.auxIP);
-            return ips;
+            const fallbackIps = [];
+            if (state.poiIPs.mainIP && state.poiIPs.mainIP !== '0.0.0.0') fallbackIps.push(state.poiIPs.mainIP);
+            if (state.poiIPs.auxIP && state.poiIPs.auxIP !== '0.0.0.0') fallbackIps.push(state.poiIPs.auxIP);
+            return fallbackIps;
         }
         return [];
     }
 
+    /**
+     * Check connectivity of all assigned POIs
+     */
     async function checkPoiConnectivity() {
         const ips = getConnectedPoiIPs();
         if (ips.length === 0) {
@@ -670,6 +770,43 @@ const TimelinePlayer = (function() {
         el.innerHTML = `POI Status: <span class="status-dot ${className}"></span> ${message}`;
     }
 
+    // ========== Multi-Timeline Status Display ==========
+
+    /**
+     * Update the multi-timeline status div with per-timeline info
+     */
+    function updateMultiTimelineStatus() {
+        const container = E.multiTimelineStatus();
+        if (!container) return;
+        container.innerHTML = '';
+
+        const timelines = _state.allTimelines || [];
+        if (timelines.length === 0) {
+            container.innerHTML = '<div style="color:#888;">No timelines loaded</div>';
+            return;
+        }
+
+        timelines.forEach((tl) => {
+            const ip = tl.assignedPoiIP;
+            const label = tl.assignedPoiLabel || getPoiLabel(ip) || 'Unknown';
+            const title = tl.title || 'Timeline';
+
+            // Find current frame for this timeline
+            const frameIndex = findTimelineFrameIndex(tl, _state.currentTime);
+            const pattern = frameIndex >= 0 ? frameIndex + 8 : '-';
+
+            const item = document.createElement('div');
+            item.className = 'tl-status-item';
+            if (_state.isPlaying) {
+                item.classList.add('active-send');
+            }
+
+            const statusIcon = ip && ip !== '0.0.0.0' ? '🟢' : '⚪';
+            item.innerHTML = `<span class="tl-status-poi">${statusIcon} ${title} → ${label}</span> <span class="tl-status-pattern">Pattern ${pattern}</span>`;
+            container.appendChild(item);
+        });
+    }
+
     // ========== UI Update ==========
 
     function updateUI() {
@@ -680,7 +817,7 @@ const TimelinePlayer = (function() {
         // Update progress bar
         const totalDuration = getTotalDuration();
         const progress = totalDuration > 0 ? (_state.currentTime / totalDuration) * 100 : 0;
-        
+
         const fill = E.progressFill();
         const thumb = E.progressThumb();
         if (fill) fill.style.width = `${Math.min(progress, 100)}%`;
@@ -689,6 +826,9 @@ const TimelinePlayer = (function() {
         // Update current image index
         updateCurrentIndex();
         highlightCurrentFrame(_state.currentIndex);
+
+        // Update multi-timeline status
+        updateMultiTimelineStatus();
     }
 
     function updateCurrentIndex() {
@@ -697,7 +837,7 @@ const TimelinePlayer = (function() {
 
     function findIndexForTime(timeMs) {
         if (!_state.times || _state.times.length === 0) return -1;
-        
+
         // Find the last timing point that is <= current time
         let index = -1;
         for (let i = 0; i < _state.times.length; i++) {
@@ -729,6 +869,39 @@ const TimelinePlayer = (function() {
         return 0;
     }
 
+    /**
+     * Get POI label from a global function or state
+     */
+    function getPoiLabel(ip) {
+        if (!ip) return 'Unknown';
+        // Try the global getPoiLabel function first
+        if (typeof window.getPoiLabel === 'function') {
+            return window.getPoiLabel(ip);
+        }
+        // Fallback: check state
+        if (typeof state !== 'undefined' && state.poiIPs) {
+            const ipMap = {
+                [state.poiIPs.mainIP]: 'Main POI',
+                [state.poiIPs.auxIP]: 'Aux POI',
+                [state.poiIPs.poiThreeIP]: 'POI 3',
+                [state.poiIPs.poiFourIP]: 'POI 4',
+                [state.poiIPs.poiFiveIP]: 'POI 5',
+                [state.poiIPs.poiSixIP]: 'POI 6',
+                [state.poiIPs.poiSevenIP]: 'POI 7',
+                [state.poiIPs.poiEightIP]: 'POI 8'
+            };
+            return ipMap[ip] || `POI (${ip})`;
+        }
+        return `POI (${ip})`;
+    }
+
+    /**
+     * Get all timeline configurations
+     */
+    function getTimelines() {
+        return _state.allTimelines;
+    }
+
     // ========== Progress Bar Seeking ==========
 
     let isSeeking = false;
@@ -736,7 +909,7 @@ const TimelinePlayer = (function() {
     function handleSeekStart(e) {
         isSeeking = true;
         doSeek(e.clientX);
-        
+
         const onMove = (ev) => {
             if (isSeeking) doSeek(ev.clientX);
         };
@@ -745,7 +918,7 @@ const TimelinePlayer = (function() {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
         };
-        
+
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
     }
@@ -754,7 +927,7 @@ const TimelinePlayer = (function() {
         e.preventDefault();
         isSeeking = true;
         doSeek(e.touches[0].clientX);
-        
+
         const onMove = (ev) => {
             if (isSeeking) doSeek(ev.touches[0].clientX);
         };
@@ -763,7 +936,7 @@ const TimelinePlayer = (function() {
             document.removeEventListener('touchmove', onMove);
             document.removeEventListener('touchend', onEnd);
         };
-        
+
         document.addEventListener('touchmove', onMove, { passive: false });
         document.addEventListener('touchend', onEnd);
     }
@@ -771,12 +944,12 @@ const TimelinePlayer = (function() {
     function doSeek(clientX) {
         const container = E.progressContainer();
         if (!container) return;
-        
+
         const rect = container.getBoundingClientRect();
         const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
         const totalDuration = getTotalDuration();
         const timeMs = ratio * totalDuration;
-        
+
         seekTo(timeMs);
     }
 
@@ -817,7 +990,8 @@ const TimelinePlayer = (function() {
         isPlaying: () => _state.isPlaying,
         getCurrentTime: () => _state.currentTime,
         getTotalDuration: getTotalDuration,
-        reset: reset
+        reset: reset,
+        getTimelines: getTimelines
     };
 })();
 
