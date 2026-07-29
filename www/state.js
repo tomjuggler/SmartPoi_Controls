@@ -118,6 +118,7 @@ function getPoiList() {
 
 /**
  * Get all configured POIs (no exclusivity - each timeline can select multiple POIs)
+ */
 function getAvailablePois() {
     const allPois = getPoiList();
     // Show all configured POIs - no exclusivity, each timeline can select multiple

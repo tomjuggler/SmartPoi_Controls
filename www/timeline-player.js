@@ -728,6 +728,7 @@ const TimelinePlayer = (function() {
      */
     function getConnectedPoiIPs() {
         const timelines = _state.allTimelines || [];
+        const ips = new Set();
         timelines.forEach(function(tl) {
             (tl.assignedPoiIPs || []).forEach(function(ip) {
                 if (ip && ip !== '0.0.0.0') ips.add(ip);
