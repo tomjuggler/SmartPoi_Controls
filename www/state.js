@@ -117,14 +117,11 @@ function getPoiList() {
 }
 
 /**
- * Get POIs that are not yet assigned to any timeline
- */
+ * Get all configured POIs (no exclusivity - each timeline can select multiple POIs)
 function getAvailablePois() {
     const allPois = getPoiList();
-    const assignedIPs = (state.magicBridge.timelines || [])
-        .map(t => t.assignedPoiIP)
-        .filter(ip => ip && ip !== '0.0.0.0');
-    return allPois.filter(p => p.ip && p.ip !== '0.0.0.0' && !assignedIPs.includes(p.ip));
+    // Show all configured POIs - no exclusivity, each timeline can select multiple
+    return allPois.filter(p => p.ip && p.ip !== '0.0.0.0');
 }
 
 /**
