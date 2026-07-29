@@ -95,9 +95,9 @@ const state = {
             MAX_RETRIES: 5,
             RETRY_BACKOFF: [1000, 3000, 5000, 7000, 10000],
             POI_CHECK_TIMEOUT: 5000
-        }
-    },
-    timelines: [] // Array of { id, title, mp3Data, timings, files, binArrayBuffers, audioUrl, assignedPoiIP, assignedPoiLabel, timelineData }
+        },
+        timelines: [] // Array of { id, title, mp3Data, timings, files, binArrayBuffers, audioUrl, assignedPoiIP, assignedPoiLabel, timelineData }
+    }
 };
 
 /**

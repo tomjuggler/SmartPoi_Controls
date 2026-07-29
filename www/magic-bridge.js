@@ -792,17 +792,13 @@ function setupMagicBridgeListeners() {
     const clearBtn = document.getElementById('magic-bridge-clear');
     if (clearBtn) {
         clearBtn.addEventListener('click', clearUpload);
-    }
 }
 
-// Auto-setup on DOMContentLoaded if not already loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupMagicBridgeListeners);
-} else {
-    setupMagicBridgeListeners();
-}
+// Listeners are set up by main.js to avoid duplication. Keep setupMagicBridgeListeners
+// available for manual invocation if needed.
 
 // Initial UI build on load
 if (typeof state !== 'undefined' && state.magicBridge && state.magicBridge.timelines) {
     setTimeout(rebuildTimelineUI, 200);
+}
 }

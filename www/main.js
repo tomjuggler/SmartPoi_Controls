@@ -817,22 +817,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ensure network mode display is updated
     updateNetworkModeDisplay();
 
-    // Initialize magic bridge upload button
-    // Magic Bridge upload - use uploadAllTimelines (multi-timeline)
-    var mbUploadEl = document.getElementById('magic-bridge-upload');
-    if (mbUploadEl && typeof uploadAllTimelines === 'function') {
-        mbUploadEl.addEventListener('click', uploadAllTimelines);
+    // Magic Bridge initialization
+    try {
+        var mbUploadEl = document.getElementById('magic-bridge-upload');
+        if (mbUploadEl && typeof uploadAllTimelines === 'function') {
+            mbUploadEl.addEventListener('click', uploadAllTimelines);
+        }
+        var mbClearEl = document.getElementById('magic-bridge-clear');
+        if (mbClearEl && typeof clearUpload === 'function') {
+            mbClearEl.addEventListener('click', clearUpload);
+        }
+        var addTlBtn2 = document.getElementById('add-timeline-btn');
+        if (addTlBtn2 && typeof addTimeline === 'function') {
+            addTlBtn2.addEventListener('click', addTimeline);
+        }
+        if (typeof rebuildTimelineUI === 'function') {
+            setTimeout(rebuildTimelineUI, 300);
+        }
+    } catch (e) {
+        console.warn('[Main] Magic Bridge init error:', e);
     }
-    // Initialize clear button
-    document.getElementById('magic-bridge-clear').addEventListener('click', clearUpload);
-    // Multi-timeline: wire up add-timeline button
-    var addTlBtn2 = document.getElementById('add-timeline-btn');
-    if (addTlBtn2 && typeof addTimeline === 'function') {
-        addTlBtn2.addEventListener('click', addTimeline);
-    }
-    // Initial rebuild of timeline UI from saved state
-    if (typeof rebuildTimelineUI === 'function') {
-        setTimeout(rebuildTimelineUI, 300);
-    }
-
 });
