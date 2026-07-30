@@ -1446,6 +1446,13 @@ input[type="range"] {
   color: #4CAF50;
 }
 
+.tl-file-loaded-label {
+  color: #90c695;
+  font-size: 0.85em;
+  margin-right: 5px;
+  white-space: nowrap;
+}
+
 .timeline-entry-controls {
   display: flex;
   gap: 10px;

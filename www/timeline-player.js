@@ -606,6 +606,9 @@ const TimelinePlayer = (function() {
             if (tlFrame >= 0 && tlFrame !== lastFrame) {
                 _state.lastTimelineFrames[tlIdx] = tlFrame;
                 var pattern = tlFrame + 8;
+                var tlName = tl.title || 'Timeline ' + (tlIdx + 1);
+                var ipList = ips.join(', ');
+                console.log('[TimelinePlayer] ▶ ' + tlName + ' frame#' + tlFrame + ' → pattern ' + pattern + ' to [' + ipList + '] @ ' + Math.round(effectiveTime) + 'ms');
                 ips.forEach(function(ip) {
                     sendPatternToPOI(pattern, ip);
                 });
@@ -684,6 +687,9 @@ const TimelinePlayer = (function() {
             if (tlIndex < 0) return;
 
             var pattern = tlIndex + 8;
+            var tlName = tl.title || 'Timeline ' + (tlIdx + 1);
+            var ipList = ips.join(', ');
+            console.log('[TimelinePlayer] ▶ ' + tlName + ' INIT frame#' + tlIndex + ' → pattern ' + pattern + ' to [' + ipList + '] @ ' + Math.round(_state.currentTime) + 'ms');
             ips.forEach(function(ip) {
                 sendPatternToPOI(pattern, ip);
                 sentCount++;
@@ -745,7 +751,8 @@ const TimelinePlayer = (function() {
         }
         _lastSendTime[key] = now;
 
-        console.log(`[TimelinePlayer] Sending pattern ${pattern} to POI ${ip}`);
+        const timeMs = Math.round(_state.currentTime);
+        console.log(`[TimelinePlayer] SENDING pattern=${pattern} to IP=${ip} at time=${timeMs}ms`);
 
         const url = `http://${ip}/pattern?patternChooserChange=${pattern}`;
         fetch(url, {

@@ -126,18 +126,41 @@ function rebuildTimelineUI() {
         const controls = document.createElement('div');
         controls.className = 'timeline-entry-controls';
 
-        // ZIP file input
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.zip';
-        fileInput.dataset.timelineId = tl.id;
-        if (tl.uploaded) fileInput.disabled = true;
-        fileInput.addEventListener('change', function(e) {
-            if (e.target.files && e.target.files[0]) {
-                handleTimelineZipSelected(tl.id);
-            }
-        });
-        controls.appendChild(fileInput);
+        // ZIP file input area - shows different UI based on whether files are loaded
+        if (tl.files && tl.files.length > 0) {
+            // Already has files loaded - show "Choose another" option
+            const fileLabel = document.createElement('span');
+            fileLabel.className = 'tl-file-loaded-label';
+            fileLabel.textContent = '\u2713 ' + tl.files.length + ' files loaded. ';
+            controls.appendChild(fileLabel);
+            
+            const replaceInput = document.createElement('input');
+            replaceInput.type = 'file';
+            replaceInput.accept = '.zip';
+            replaceInput.dataset.timelineId = tl.id;
+            replaceInput.title = 'Choose another ZIP to replace current';
+            if (tl.uploaded) replaceInput.disabled = true;
+            replaceInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    handleTimelineZipSelected(tl.id);
+                }
+            });
+            controls.appendChild(replaceInput);
+        } else {
+            // No files yet - show normal file input
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.zip';
+            fileInput.dataset.timelineId = tl.id;
+            fileInput.placeholder = 'Select ZIP...';
+            if (tl.uploaded) fileInput.disabled = true;
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    handleTimelineZipSelected(tl.id);
+                }
+            });
+            controls.appendChild(fileInput);
+        }
 
         // POI checkboxes (multi-select)
         var poiLabel = document.createElement('label');
