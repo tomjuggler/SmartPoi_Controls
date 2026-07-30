@@ -133,7 +133,7 @@ function rebuildTimelineUI() {
             fileLabel.className = 'tl-file-loaded-label';
             fileLabel.textContent = '\u2713 ' + tl.files.length + ' files loaded. ';
             controls.appendChild(fileLabel);
-            
+
             const replaceInput = document.createElement('input');
             replaceInput.type = 'file';
             replaceInput.accept = '.zip';
@@ -167,13 +167,13 @@ function rebuildTimelineUI() {
         poiLabel.className = 'tl-poi-label';
         poiLabel.textContent = 'Send to:';
         controls.appendChild(poiLabel);
-        
+
         var poiCheckGroup = document.createElement('div');
         poiCheckGroup.className = 'tl-poi-checkgroup';
-        
+
         var allPois = getPoiList();
         var selectedIPs = tl.assignedPoiIPs || [];
-        
+
         allPois.forEach(function(poi) {
             if (!poi.ip || poi.ip === '0.0.0.0') return;
             var label = document.createElement('label');
@@ -190,7 +190,7 @@ function rebuildTimelineUI() {
             label.appendChild(document.createTextNode(' ' + poi.label));
             poiCheckGroup.appendChild(label);
         });
-        
+
         controls.appendChild(poiCheckGroup);
 
         // Remove button
@@ -207,7 +207,7 @@ function rebuildTimelineUI() {
         if (!state.poiIPs.routerMode) {
             var apNote = document.createElement('div');
             apNote.className = 'tl-ap-mode-note';
-            apNote.textContent = 'ℹ AP mode: POIs may need to be paired for synchronised playback';
+            apNote.textContent = 'AP mode: multi-timeline disabled. POIs are linked and share patterns.';
             controls.appendChild(apNote);
         }
 
@@ -218,8 +218,14 @@ function rebuildTimelineUI() {
     // Update Add Timeline button
     const addBtn = document.getElementById('add-timeline-btn');
     if (addBtn) {
-        const availablePois = getAvailablePois();
-        addBtn.disabled = availablePois.length === 0;
+        var isApMode = !state.poiIPs.routerMode;
+        if (isApMode) {
+            addBtn.disabled = true;
+            addBtn.title = 'Multi-timeline not available in AP mode';
+        } else {
+            const availablePois = getAvailablePois();
+            addBtn.disabled = availablePois.length === 0;
+        }
     }
 
     // Update Clear All button
@@ -432,7 +438,7 @@ async function handleTimelineZipSelected(timelineId) {
 function updateTimelinePlayerState() {
     const timelines = state.magicBridge.timelines || [];
     if (timelines.length === 0 || typeof TimelinePlayer === 'undefined') return;
-    
+
     // Build array of timeline objects for TimelinePlayer
     const tlDataArray = timelines.map(tl => ({
         times: tl.timingsArray || [],
@@ -443,7 +449,7 @@ function updateTimelinePlayerState() {
         assignedPoiIPs: tl.assignedPoiIPs || [],
         assignedPoiLabels: tl.assignedPoiLabels || []
     })).filter(tl => tl.times.length > 0 || tl.timelineData !== null);
-    
+
     if (tlDataArray.length > 0 && typeof TimelinePlayer.loadTimelineData === 'function') {
         // Use first timeline's audio URL
         const firstTl = timelines[0];
