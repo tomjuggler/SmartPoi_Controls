@@ -400,6 +400,10 @@ const TimelinePlayer = (function() {
         }
 
         // Reset per-timeline frame tracker so each timeline sends its initial frame
+        // Clear stale rate limiter data so this play session starts fresh
+        Object.keys(_lastSendTime).forEach(function(k) {
+            delete _lastSendTime[k];
+        });
         _state.lastTimelineFrames = new Array((_state.allTimelines || []).length).fill(-1);
 
         // Send the current frame for ALL timelines to their assigned POIs immediately
