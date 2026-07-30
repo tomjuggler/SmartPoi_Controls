@@ -203,6 +203,14 @@ function rebuildTimelineUI() {
         });
         controls.appendChild(removeBtn);
 
+        // AP mode pairing note
+        if (!state.poiIPs.routerMode) {
+            var apNote = document.createElement('div');
+            apNote.className = 'tl-ap-mode-note';
+            apNote.textContent = 'ℹ AP mode: POIs may need to be paired for synchronised playback';
+            controls.appendChild(apNote);
+        }
+
         card.appendChild(controls);
         container.appendChild(card);
     });

@@ -1453,6 +1453,16 @@ input[type="range"] {
   white-space: nowrap;
 }
 
+.tl-ap-mode-note {
+  font-size: 0.8em;
+  color: #e6a817;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: rgba(230, 168, 23, 0.1);
+  border-radius: 4px;
+  width: 100%;
+}
+
 .timeline-entry-controls {
   display: flex;
   gap: 10px;
