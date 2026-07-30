@@ -143,6 +143,9 @@ const TimelinePlayer = (function() {
         // Store all timelines
         _state.allTimelines = timelinesArray || [];
 
+        // Reset per-timeline frame tracker to match the new timeline count
+        _state.lastTimelineFrames = new Array(_state.allTimelines.length).fill(-1);
+
         // Use the FIRST timeline to drive transport (audio, image strip, duration)
         const firstTl = Array.isArray(timelinesArray) && timelinesArray.length > 0 ? timelinesArray[0] : null;
 
@@ -484,6 +487,11 @@ const TimelinePlayer = (function() {
         _state.allTimelines = [];
         _state.lastTimelineFrames = [];
 
+        // Clear rate limiter state so stale cooldown data doesn't persist across sessions
+        Object.keys(_lastSendTime).forEach(function(k) {
+            delete _lastSendTime[k];
+        });
+
         // Clear image strip
         const strip = E.imageStrip();
         if (strip) strip.innerHTML = '';
@@ -593,7 +601,7 @@ const TimelinePlayer = (function() {
             var ips = tl.assignedPoiIPs || [tl.assignedPoiIP].filter(Boolean);
             if (ips.length === 0) return;
 
-            const tlFrame = findTimelineFrameIndex(tl, _state.currentTime);
+            const tlFrame = findTimelineFrameIndex(tl, effectiveTime);
             const lastFrame = _state.lastTimelineFrames[tlIdx];
             if (tlFrame >= 0 && tlFrame !== lastFrame) {
                 _state.lastTimelineFrames[tlIdx] = tlFrame;
