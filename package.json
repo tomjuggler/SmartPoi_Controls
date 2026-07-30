@@ -1,7 +1,7 @@
 {
   "name": "com.circusscientist.smartpoicontrols",
   "displayName": "SmartPoi_Controls",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "SmartPoi POV Poi control app. Control settings, upload images, and more.",
   "main": "index.js",
   "scripts": {
