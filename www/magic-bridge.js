@@ -220,8 +220,11 @@ function rebuildTimelineUI() {
     if (addBtn) {
         var isApMode = !state.poiIPs.routerMode;
         if (isApMode) {
-            addBtn.disabled = true;
-            addBtn.title = 'Multi-timeline not available in AP mode';
+            // In AP mode, allow one timeline, then disable for subsequent
+            addBtn.disabled = timelines.length >= 1;
+            addBtn.title = timelines.length >= 1
+                ? 'Only one timeline allowed in AP mode'
+                : 'Add a single timeline (AP mode)';
         } else {
             const availablePois = getAvailablePois();
             addBtn.disabled = availablePois.length === 0;
