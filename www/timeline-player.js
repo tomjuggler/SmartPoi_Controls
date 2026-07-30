@@ -616,7 +616,13 @@ const TimelinePlayer = (function() {
         // Only send pattern commands to POIs whose timeline frame has changed
         const timelines = _state.allTimelines || [];
         timelines.forEach((tl, tlIdx) => {
-            var ips = tl.assignedPoiIPs || [tl.assignedPoiIP].filter(Boolean);
+            // Send pattern to ALL configured POIs (Main + Aux) simultaneously
+            // This prevents POI firmware from reverting when only one POI receives an update
+            var ips = [];
+            if (typeof state !== 'undefined' && state.poiIPs) {
+                if (state.poiIPs.mainIP && state.poiIPs.mainIP !== '0.0.0.0') ips.push(state.poiIPs.mainIP);
+                if (state.poiIPs.auxIP && state.poiIPs.auxIP !== '0.0.0.0') ips.push(state.poiIPs.auxIP);
+            }
             if (ips.length === 0) return;
 
             const tlFrame = findTimelineFrameIndex(tl, effectiveTime);
@@ -694,7 +700,14 @@ const TimelinePlayer = (function() {
         let sentCount = 0;
 
         timelines.forEach((tl, tlIdx) => {
-            var ips = tl.assignedPoiIPs || [tl.assignedPoiIP].filter(Boolean);
+            // Send pattern to ALL configured POIs (Main + Aux) simultaneously
+            // This prevents POI firmware from reverting when only one POI receives an update
+            var ips = [];
+            if (typeof state !== 'undefined' && state.poiIPs) {
+                if (state.poiIPs.mainIP && state.poiIPs.mainIP !== '0.0.0.0') ips.push(state.poiIPs.mainIP);
+                if (state.poiIPs.auxIP && state.poiIPs.auxIP !== '0.0.0.0') ips.push(state.poiIPs.auxIP);
+            }
+            if (ips.length === 0) return;
             if (ips.length === 0) {
                 console.log('[TimelinePlayer] ' + (tl.title || 'Timeline') + ' has no assigned POI, skipping');
                 return;
