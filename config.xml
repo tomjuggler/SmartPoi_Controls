@@ -53,6 +53,10 @@
     <platform name="android">
         <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/screen/android/splashscreen.xml" />
         <preference name="AndroidWindowSplashScreenBackground" value="#000000" />
+        <!-- Sets the Target SDK level -->
+        <preference name="android-targetSdkVersion" value="36" />
+        <!-- (Optional) Ensure compile SDK matches or exceeds target -->
+        <preference name="android-compileSdkVersion" value="36" />
     </platform>
 
     <hook src="hooks/after_prepare/remove_manage_storage.js" type="after_prepare" />
