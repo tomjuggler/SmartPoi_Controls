@@ -404,6 +404,20 @@ const TimelinePlayer = (function() {
         Object.keys(_lastSendTime).forEach(function(k) {
             delete _lastSendTime[k];
         });
+        // Reset any flash-stored patterns on POIs so they don't revert to stale images during playback
+        var resetIps = new Set();
+        (_state.allTimelines || []).forEach(function(tl) {
+            (tl.assignedPoiIPs || []).forEach(function(ip) {
+                if (ip && ip !== '0.0.0.0') resetIps.add(ip);
+            });
+        });
+        resetIps.forEach(function(ip) {
+            fetch('http://' + ip + '/resetimagetouse', {
+                method: 'GET',
+                signal: AbortSignal.timeout(2000)
+            }).catch(function() {});
+        });
+
         _state.lastTimelineFrames = new Array((_state.allTimelines || []).length).fill(-1);
 
         // Send the current frame for ALL timelines to their assigned POIs immediately
