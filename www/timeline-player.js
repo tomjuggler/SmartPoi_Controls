@@ -603,12 +603,17 @@ const TimelinePlayer = (function() {
         // Only send pattern commands to POIs whose timeline frame has changed
         const timelines = _state.allTimelines || [];
         timelines.forEach((tl, tlIdx) => {
-            // Send pattern to ALL configured POIs (Main + Aux) simultaneously
-            // This prevents POI firmware from reverting when only one POI receives an update
+            // Router mode: send only to this timeline's assigned POIs
+            // AP mode: send to all configured POIs to prevent firmware reverting
             var ips = [];
-            if (typeof state !== 'undefined' && state.poiIPs) {
-                if (state.poiIPs.mainIP && state.poiIPs.mainIP !== '0.0.0.0') ips.push(state.poiIPs.mainIP);
-                if (state.poiIPs.auxIP && state.poiIPs.auxIP !== '0.0.0.0') ips.push(state.poiIPs.auxIP);
+            if (state && state.poiIPs && state.poiIPs.routerMode) {
+                ips = tl.assignedPoiIPs || [tl.assignedPoiIP].filter(Boolean);
+            } else {
+                // AP mode: send to both Main + Aux to keep linked POIs in sync
+                if (state && state.poiIPs) {
+                    if (state.poiIPs.mainIP && state.poiIPs.mainIP !== '0.0.0.0') ips.push(state.poiIPs.mainIP);
+                    if (state.poiIPs.auxIP && state.poiIPs.auxIP !== '0.0.0.0') ips.push(state.poiIPs.auxIP);
+                }
             }
             if (ips.length === 0) return;
 
@@ -690,9 +695,14 @@ const TimelinePlayer = (function() {
             // Send pattern to ALL configured POIs (Main + Aux) simultaneously
             // This prevents POI firmware from reverting when only one POI receives an update
             var ips = [];
-            if (typeof state !== 'undefined' && state.poiIPs) {
-                if (state.poiIPs.mainIP && state.poiIPs.mainIP !== '0.0.0.0') ips.push(state.poiIPs.mainIP);
-                if (state.poiIPs.auxIP && state.poiIPs.auxIP !== '0.0.0.0') ips.push(state.poiIPs.auxIP);
+            if (state && state.poiIPs && state.poiIPs.routerMode) {
+                ips = tl.assignedPoiIPs || [tl.assignedPoiIP].filter(Boolean);
+            } else {
+                // AP mode: send to both Main + Aux to keep linked POIs in sync
+                if (state && state.poiIPs) {
+                    if (state.poiIPs.mainIP && state.poiIPs.mainIP !== '0.0.0.0') ips.push(state.poiIPs.mainIP);
+                    if (state.poiIPs.auxIP && state.poiIPs.auxIP !== '0.0.0.0') ips.push(state.poiIPs.auxIP);
+                }
             }
             if (ips.length === 0) return;
             if (ips.length === 0) {
