@@ -841,3 +841,114 @@ if (typeof state !== 'undefined' && state.magicBridge && state.magicBridge.timel
     setTimeout(rebuildTimelineUI, 200);
 }
 }
+
+// ============================
+//     BRIGHTNESS ON PLAY
+// ============================
+
+const MB_BRIGHTNESS_ENABLED_KEY = 'mbBrightnessEnabled';
+const MB_BRIGHTNESS_VALUE_KEY = 'mbBrightnessValue';
+const MB_BRIGHTNESS_MIN = 20;
+const MB_BRIGHTNESS_MAX = 255;
+const MB_BRIGHTNESS_DEFAULT = 255;
+
+/**
+ * Read the persisted brightness-on-play settings (Enable checkbox + slider value).
+ * Remembered across sessions via localStorage. Defaults: OFF / 255.
+ */
+function getMagicBridgeBrightnessSetting() {
+    var enabled = false;
+    var value = MB_BRIGHTNESS_DEFAULT;
+    try {
+        enabled = localStorage.getItem(MB_BRIGHTNESS_ENABLED_KEY) === 'true';
+        var stored = parseInt(localStorage.getItem(MB_BRIGHTNESS_VALUE_KEY), 10);
+        if (!isNaN(stored)) {
+            value = Math.min(MB_BRIGHTNESS_MAX, Math.max(MB_BRIGHTNESS_MIN, stored));
+        }
+    } catch (e) {
+        console.warn('[MagicBridge] Failed to read brightness settings:', e);
+    }
+    return { enabled: enabled, value: value };
+}
+
+/**
+ * Send the brightness command to every configured POI.
+ * Uses the same endpoint as the Controls tab: /brightness?brt=<value>
+ * @param {number} brightness - 20-255
+ * @returns {number} number of POIs the command was sent to
+ */
+function sendBrightnessToConfiguredPois(brightness) {
+    var ips = [];
+    if (typeof getPoiList === 'function') {
+        getPoiList().forEach(function (poi) {
+            if (poi.ip && poi.ip !== '0.0.0.0' && ips.indexOf(poi.ip) === -1) {
+                ips.push(poi.ip);
+            }
+        });
+    }
+    ips.forEach(function (ip) {
+        fetch(`http://${ip}/brightness?brt=${brightness}`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(5000)
+        }).then(function () {
+            console.log(`[MagicBridge] ✓ brightness=${brightness} applied on ${ip}`);
+        }).catch(function (err) {
+            console.warn(`[MagicBridge] ✗ brightness=${brightness} failed on ${ip}:`, err.message);
+        });
+    });
+    return ips.length;
+}
+
+/**
+ * Called by TimelinePlayer whenever Play starts.
+ * Sends the saved brightness to all configured POIs if the feature is enabled.
+ */
+window.sendBrightnessOnPlay = function () {
+    var setting = getMagicBridgeBrightnessSetting();
+    if (!setting.enabled) return;
+    var count = sendBrightnessToConfiguredPois(setting.value);
+    console.log(`[MagicBridge] Brightness ${setting.value} sent to ${count} POI(s) on Play`);
+};
+
+/**
+ * Wire up the Enable checkbox + Brightness slider in the playback section
+ * and restore their persisted values.
+ */
+function initMagicBridgeBrightnessControls() {
+    const checkbox = document.getElementById('mb-brightness-enable');
+    const slider = document.getElementById('mb-brightness-slider');
+    const valueEl = document.getElementById('mb-brightness-value');
+    if (!checkbox || !slider || !valueEl) return;
+
+    const setting = getMagicBridgeBrightnessSetting();
+    checkbox.checked = setting.enabled;
+    slider.value = setting.value;
+    valueEl.textContent = setting.value;
+    slider.disabled = !setting.enabled;
+
+    checkbox.addEventListener('change', function () {
+        try {
+            localStorage.setItem(MB_BRIGHTNESS_ENABLED_KEY, checkbox.checked ? 'true' : 'false');
+        } catch (e) {
+            console.warn('[MagicBridge] Failed to save brightness enabled flag:', e);
+        }
+        slider.disabled = !checkbox.checked;
+    });
+
+    slider.addEventListener('input', function () {
+        const value = parseInt(slider.value, 10);
+        valueEl.textContent = value;
+        try {
+            localStorage.setItem(MB_BRIGHTNESS_VALUE_KEY, String(value));
+        } catch (e) {
+            console.warn('[MagicBridge] Failed to save brightness value:', e);
+        }
+    });
+}
+
+// Wire up brightness-on-play controls once the DOM is available
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMagicBridgeBrightnessControls);
+} else {
+    initMagicBridgeBrightnessControls();
+}

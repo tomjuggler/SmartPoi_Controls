@@ -628,6 +628,17 @@
                     <span id="tl-time" class="tl-time">00:00.000</span>
                 </div>
 
+                <!-- Brightness on Play -->
+                <div class="mb-brightness-controls">
+                    <label class="mb-brightness-toggle" for="mb-brightness-enable">
+                        <input type="checkbox" id="mb-brightness-enable"> Enable
+                    </label>
+                    <div class="mb-brightness-slider-wrap">
+                        <label for="mb-brightness-slider">Brightness (<span id="mb-brightness-value">255</span>)</label>
+                        <input type="range" id="mb-brightness-slider" min="20" max="255" value="255">
+                    </div>
+                </div>
+
                 <!-- Progress Bar (Seekable with markers) -->
                 <div class="timeline-progress-container" id="tl-progress-container">
                     <div class="timeline-progress-track" id="tl-progress-track">

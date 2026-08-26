@@ -381,6 +381,11 @@ const TimelinePlayer = (function() {
         _state.isPlaying = true;
         _state.isPaused = false;
 
+        // Brightness-on-play hook (Smart Magic Bridge): send saved brightness to all configured POIs
+        if (typeof window.sendBrightnessOnPlay === 'function') {
+            try { window.sendBrightnessOnPlay(); } catch (e) { console.warn('[TimelinePlayer] sendBrightnessOnPlay failed:', e); }
+        }
+
         const playBtn = E.playBtn();
         const pauseBtn = E.pauseBtn();
         if (playBtn) playBtn.style.display = 'none';

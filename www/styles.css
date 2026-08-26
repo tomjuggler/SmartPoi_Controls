@@ -1618,6 +1618,60 @@ input[type="range"] {
   background: rgba(44, 122, 71, 0.15);
 }
 
+/* ========== Magic Bridge Brightness on Play ========== */
+.mb-brightness-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+}
+
+.mb-brightness-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ddd;
+  font-size: 0.9em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mb-brightness-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.mb-brightness-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.mb-brightness-slider-wrap label {
+  color: #aaa;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.mb-brightness-slider-wrap input[type="range"] {
+  flex: 1;
+  cursor: pointer;
+}
+
+.mb-brightness-slider-wrap input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .timeline-entry-controls {
