@@ -90,6 +90,10 @@ async function handleUpload() {
     }
 
     try {
+        // Keep the screen awake for the duration of the batch upload
+        if (typeof window.keepAwake === 'function') {
+            window.keepAwake(true);
+        }
         createMessage('Starting upload process...', 'info');
         showUploadStatus('Starting upload process...', 'info');
         
@@ -199,6 +203,10 @@ async function handleUpload() {
         showUploadStatus(`Upload failed: ${error.message}`, 'error');
         handleCriticalError(error);
     } finally {
+        // Upload finished (success or failure) - allow the screen to sleep again
+        if (typeof window.keepAwake === 'function') {
+            window.keepAwake(false);
+        }
         state.upload.orderedFiles = [];
         document.getElementById('fileListContainer').innerHTML = '';
         document.getElementById('uploadFileInput').value = '';

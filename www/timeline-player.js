@@ -384,6 +384,11 @@ const TimelinePlayer = (function() {
         // Brightness-on-play hook (Smart Magic Bridge): send saved brightness to all configured POIs
         if (typeof window.sendBrightnessOnPlay === 'function') {
             try { window.sendBrightnessOnPlay(); } catch (e) { console.warn('[TimelinePlayer] sendBrightnessOnPlay failed:', e); }
+
+            // Keep the screen awake while streaming frames to the POIs
+            if (typeof window.keepAwake === 'function') {
+                window.keepAwake(true);
+            }
         }
 
         const playBtn = E.playBtn();
@@ -453,6 +458,11 @@ const TimelinePlayer = (function() {
         const audioEl = E.audio();
         if (audioEl) audioEl.pause();
 
+        // Paused - allow the screen to sleep again until playback resumes
+        if (typeof window.keepAwake === 'function') {
+            window.keepAwake(false);
+        }
+
         showStatus('Paused', 'info');
     }
 
@@ -470,6 +480,11 @@ const TimelinePlayer = (function() {
         const pauseBtn = E.pauseBtn();
         if (playBtn) playBtn.style.display = 'inline-block';
         if (pauseBtn) pauseBtn.style.display = 'none';
+
+        // Playback stopped - allow the screen to sleep again
+        if (typeof window.keepAwake === 'function') {
+            window.keepAwake(false);
+        }
 
         // Stop audio
         const audioEl = E.audio();
@@ -675,6 +690,11 @@ const TimelinePlayer = (function() {
         const pauseBtn = E.pauseBtn();
         if (playBtn) playBtn.style.display = 'inline-block';
         if (pauseBtn) pauseBtn.style.display = 'none';
+
+        // Playback finished naturally - allow the screen to sleep again
+        if (typeof window.keepAwake === 'function') {
+            window.keepAwake(false);
+        }
 
         showStatus('Playback complete', 'info');
     }

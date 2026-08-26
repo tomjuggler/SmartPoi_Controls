@@ -290,3 +290,42 @@ function loadState() {
         }
     }
 }
+
+// ============================
+//     SCREEN WAKE LOCK
+// ============================
+// Keeps the screen on while streaming/controlling POIs using the native
+// Screen Wake Lock API (Android WebView >= 84, Electron). No plugin needed.
+// The browser releases the lock whenever the page is hidden, so it is
+// re-acquired automatically when the app becomes visible again.
+
+let _wakeLock = null;
+let _wantAwake = false;
+
+async function keepAwake(on) {
+    _wantAwake = !!on;
+    try {
+        if (on && !_wakeLock && 'wakeLock' in navigator) {
+            _wakeLock = await navigator.wakeLock.request('screen');
+            _wakeLock.addEventListener('release', () => { _wakeLock = null; });
+            console.log('[WakeLock] screen wake lock acquired');
+        } else if (!on && _wakeLock) {
+            await _wakeLock.release();
+            _wakeLock = null;
+            console.log('[WakeLock] screen wake lock released');
+        }
+    } catch (e) {
+        // Denied, unsupported, or page hidden - non-fatal
+        console.warn('[WakeLock] keepAwake(' + !!on + ') failed:', e);
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    // Re-acquire after the app is backgrounded/resumed
+    if (document.visibilityState === 'visible' && _wantAwake) {
+        keepAwake(true);
+    }
+});
+
+// Expose globally for other modules
+window.keepAwake = keepAwake;

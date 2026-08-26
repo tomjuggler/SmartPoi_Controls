@@ -587,6 +587,11 @@ async function uploadAllTimelines() {
         statusEl.style.color = 'inherit';
     }
 
+    // Keep the screen awake for the duration of the batch upload
+    if (typeof window.keepAwake === 'function') {
+        window.keepAwake(true);
+    }
+
     let allSuccess = true;
 
     for (const tl of readyTimelines) {
@@ -652,6 +657,11 @@ async function uploadAllTimelines() {
     rebuildTimelineUI();
 
     if (uploadBtn) uploadBtn.disabled = false;
+
+    // Upload finished (successfully or not) - allow the screen to sleep again
+    if (typeof window.keepAwake === 'function') {
+        window.keepAwake(false);
+    }
 
     if (allSuccess && statusEl) {
         statusEl.textContent = 'All timelines uploaded successfully!';
