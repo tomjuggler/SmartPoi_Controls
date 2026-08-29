@@ -1,0 +1,11 @@
+{
+  "name": "cordova-plugin-detectrouter",
+  "version": "1.0.0",
+  "description": "Detect local hotspot AP IPv4 or WiFi router gateway IPv4 for SmartPoi Discover",
+  "license": "MIT",
+  "cordova": {
+    "id": "cordova-plugin-detectrouter",
+    "platforms": ["android"]
+  },
+  "keywords": ["ecosystem:cordova", "cordova-android", "smartpoi", "router", "gateway", "hotspot"]
+}

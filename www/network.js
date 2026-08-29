@@ -1,5 +1,68 @@
 // Network & Discovery Functions
 
+// Detect the router IP for the Discover scan — two sources:
+// 1) cordova-plugin-detectrouter (preferred): mirrors the SmartPoi UDP Extras Kotlin
+//    detectRouterIp() — finds the hotspot/AP interface IPv4 (swlan0/ap0/wlan1/softap0)
+//    when the phone hosts a hotspot, else the WiFi router gateway IPv4 via the default
+//    route (only on wlan* interfaces, so carrier gateways are never reported).
+// 2) WebRTC RTCPeerConnection "host candidate" trick (fallback when the plugin is
+//    unavailable, e.g. desktop/electron): reveals the phone's own local IPv4. The
+//    Discover scan derives the /24 from the first 3 octets, so the phone's WiFi IP
+//    (e.g. 10.0.0.113) yields the same scan range as the router gateway (10.0.0.2).
+function detectRouterIp() {
+    return new Promise(function (resolve) {
+        var useWebRtcFallback = function () {
+            webrtcDetectRouterIp().then(resolve);
+        };
+        if (window.detectRouter && typeof window.detectRouter.detectRouterIp === 'function') {
+            window.detectRouter.detectRouterIp(
+                function (ip) { if (ip) { resolve(ip); } else { useWebRtcFallback(); } },
+                function () { useWebRtcFallback(); }
+            );
+        } else {
+            useWebRtcFallback();
+        }
+    });
+}
+
+// WebRTC host-candidate local-IP detection (no plugins needed).
+function webrtcDetectRouterIp() {
+    return new Promise(function (resolve) {
+        var ips = [];
+        var done = false;
+        var pc = null;
+        var finish = function () {
+            if (done) return;
+            done = true;
+            try { pc.close(); } catch (e) {}
+            // Keep only RFC1918 private IPv4s (10/8, 172.16/12, 192.168/16);
+            // exclude CGNAT 100.64/10, link-local 169.254/16 and loopback.
+            var priv = ips.filter(function (ip) {
+                return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(ip) &&
+                    !/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip) &&
+                    !/^169\.254\./.test(ip);
+            });
+            resolve(priv.length ? priv[0] : null);
+        };
+        if (typeof RTCPeerConnection === 'undefined') { resolve(null); return; }
+        try {
+            pc = new RTCPeerConnection({ iceServers: [] });
+            pc.createDataChannel('');
+            pc.createOffer().then(function (offer) { return pc.setLocalDescription(offer); }).catch(finish);
+            pc.onicecandidate = function (e) {
+                if (!e.candidate) { finish(); return; }
+                var parts = e.candidate.candidate.split(' ');
+                if (parts[7] === 'host' && parts[4] && ips.indexOf(parts[4]) === -1) {
+                    ips.push(parts[4]);
+                }
+            };
+        } catch (e) {
+            finish();
+        }
+        setTimeout(finish, 3000); // safety timeout in case candidates never fire
+    });
+}
+
 // Fast POI Discovery Functions
 async function checkDevice(ip) {
     try {
@@ -75,6 +138,18 @@ async function fastScanNetwork(subnet) {
 }
 
 function initializeNetworkDiscovery() {
+    document.getElementById('detectRouterBtn').addEventListener('click', () => {
+        detectRouterIp().then(ip => {
+            const input = document.getElementById('routerIpInput');
+            if (ip) {
+                input.value = ip;
+                createMessage(`Router IP detected: ${ip} (phone's IP on this network - Discover scans the same subnet)`);
+            } else {
+                createMessage("Couldn't detect a router IP - enter it manually (hotspot/cellular mode not supported)", 'warning');
+            }
+        });
+    });
+
     document.getElementById('discoverBtn').addEventListener('click', async () => {
         const routerIp = document.getElementById('routerIpInput').value;
         if (!validateIP(routerIp)) {

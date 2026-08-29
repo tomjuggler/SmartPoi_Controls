@@ -273,6 +273,7 @@
     .dark-button, 
     .manual-ip-row button,
     #discoverBtn,
+    #detectRouterBtn,
     #syncButton {
         padding: 12px 16px;
         font-size: 1.1em;
@@ -1030,6 +1031,7 @@ input[type="range"] {
     box-shadow: 0 0 10px rgba(44,122,71,0.6) !important;
 }
 #discoverBtn,
+#detectRouterBtn,
 .manual-ip-row button,
 #fetchBtn,
 .danger-zone button[onclick*="submitRouter"],
@@ -1046,6 +1048,7 @@ input[type="range"] {
 }
 
 #discoverBtn:hover,
+#detectRouterBtn:hover,
 .manual-ip-row button:hover,
 #fetchBtn:hover,
 .danger-zone button[onclick*="submitRouter"]:hover,

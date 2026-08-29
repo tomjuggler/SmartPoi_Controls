@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    id="cordova-plugin-detectrouter"
+    version="1.0.0">
+    <name>DetectRouter</name>
+    <description>Detects the local hotspot/AP IPv4 or the WiFi router gateway IPv4 — mirrors the SmartPoi UDP Extras Kotlin detectRouterIp() so the Cordova app's "Detect" button works in both modes.</description>
+    <license>MIT</license>
+    <keywords>smartpoi,router,gateway,hotspot,ip,discover</keywords>
+
+    <js-module src="www/detect-router.js" name="DetectRouter">
+        <clobbers target="detectRouter" />
+    </js-module>
+
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="DetectRouter">
+                <param name="android-package" value="com.circusscientist.detectrouter.DetectRouter"/>
+            </feature>
+        </config-file>
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+        </config-file>
+        <source-file src="src/android/DetectRouter.java" target-dir="src/com/circusscientist/detectrouter"/>
+    </platform>
+</plugin>
