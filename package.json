@@ -15,12 +15,14 @@
   "devDependencies": {
     "cordova-android": "^15.0.0",
     "cordova-electron": "^4.0.0",
+    "cordova-ios": "^8.1.1",
     "cordova-plugin-detectrouter": "file:local-plugins/cordova-plugin-detectrouter"
   },
   "cordova": {
     "platforms": [
       "electron",
-      "android"
+      "android",
+      "ios"
     ],
     "plugins": {
       "cordova-plugin-detectrouter": {}
