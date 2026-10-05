@@ -36,21 +36,34 @@ jobs:
         run: |
           set -euo pipefail
 
-          # `cordova build ios --no-sign` does NOT work: cordova-ios 8 does not
-          # recognise --no-sign (nopt silently parses it as `sign: false`) and its
-          # own packaging step runs `xcodebuild -exportArchive`, which requires a
-          # valid signing identity. Build a real arm64/iphoneos archive directly
-          # with code signing disabled instead.
+          mkdir -p build
+
+          # Xcode 16 defaults to "Explicit Modules", which breaks the Cordova iOS 8
+          # Swift bridging header with:
+          #   fatal error: module 'Cordova' ... is not defined in any loaded module map file
+          # Disable it. Also build a real arm64/iphoneos archive with code signing
+          # disabled (cordova-ios 8 no longer has a working `--no-sign` flag).
           xcodebuild \
             -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
+            -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -archivePath "$PWD/build/App.xcarchive" \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
+            _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            archive
+            archive 2>&1 | tee build/xcodebuild-archive.log
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: platforms/ios/build/xcodebuild-archive.log
+          if-no-files-found: ignore
 
       - name: Package Unsigned IPA
         working-directory: platforms/ios

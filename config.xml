@@ -7,7 +7,10 @@
     </author>
     <content src="index.html" />
     <!-- Application icons -->
-    <icon src="res/ic_launcher-web.png" />
+    <!-- iOS requires a 1024x1024 icon for the AppIcon asset catalog slot, so use the
+         1024px version here (res/ic_launcher-web.png is only 512x512, which makes
+         actool fail with "AppIcon ... did not have any applicable content"). -->
+    <icon src="res/icon-1024.png" />
 
     <!-- Allow access to local network devices -->
     <access origin="http://*" />
