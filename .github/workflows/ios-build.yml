@@ -1,0 +1,75 @@
+name: Build Cordova iOS App
+
+on:
+  workflow_dispatch: # Allows you to trigger the build manually from GitHub
+
+jobs:
+  build-ios:
+    # cordova-ios 8.1.1 targets Xcode 15/16. Pin a known-good image instead of
+    # `macos-latest` so a new default Xcode cannot break the build.
+    runs-on: macos-15 # GitHub-hosted macOS 15 image (Xcode 16.x)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # cordova-ios 8.x requires Node ^20.17.0 || >=22.9.0
+          node-version: '20'
+
+      - name: Install Cordova and Dependencies
+        run: |
+          npm install -g cordova
+          npm install
+
+      - name: Add iOS Platform
+        run: cordova platform add ios@8
+
+      - name: Prepare iOS Platform
+        # Applies config.xml (icons, ATS and Info.plist entries) to the Xcode project
+        run: cordova prepare ios
+
+      - name: Build Unsigned Device Archive
+        working-directory: platforms/ios
+        run: |
+          set -euo pipefail
+
+          # `cordova build ios --no-sign` does NOT work: cordova-ios 8 does not
+          # recognise --no-sign (nopt silently parses it as `sign: false`) and its
+          # own packaging step runs `xcodebuild -exportArchive`, which requires a
+          # valid signing identity. Build a real arm64/iphoneos archive directly
+          # with code signing disabled instead.
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/App.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive
+
+      - name: Package Unsigned IPA
+        working-directory: platforms/ios
+        run: |
+          set -euo pipefail
+
+          APP_PATH="$(find build/App.xcarchive/Products/Applications -maxdepth 1 -name '*.app' | head -n1)"
+          test -n "$APP_PATH"
+
+          rm -rf build/ipa
+          mkdir -p build/ipa/Payload
+          cp -R "$APP_PATH" build/ipa/Payload/
+
+          # An unsigned .ipa is just a zip with a Payload/ folder containing the .app
+          (cd build/ipa && zip -qry SmartPoi_Controls.ipa Payload)
+
+      - name: Upload Unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-ipa
+          path: platforms/ios/build/ipa/SmartPoi_Controls.ipa
+          if-no-files-found: error

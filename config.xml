@@ -35,10 +35,6 @@
     <preference name="AndroidPersistentFileLocation" value="Internal" />
     <preference name="iosPersistentFileLocation" value="Library" />
 
-    <!-- Network security configuration for Android -->
-    <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application" xmlns:android="http://schemas.android.com/apk/res/android">
-        <application android:usesCleartextTraffic="true" />
-    </edit-config>
 
     <!-- Platform preferences -->
     <preference name="loadUrlTimeoutValue" value="700000" />
@@ -51,6 +47,10 @@
 
     <!-- Splash Screen -->
     <platform name="android">
+        <!-- Network security configuration for Android -->
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application" xmlns:android="http://schemas.android.com/apk/res/android">
+            <application android:usesCleartextTraffic="true" />
+        </edit-config>
         <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/screen/android/splashscreen.xml" />
         <preference name="AndroidWindowSplashScreenBackground" value="#000000" />
         <!-- Sets the Target SDK level -->
@@ -58,6 +58,15 @@
         <!-- (Optional) Ensure compile SDK matches or exceeds target -->
         <preference name="android-compileSdkVersion" value="36" />
     </platform>
-
+    <platform name="ios">
+        <!-- Cleartext HTTP to the SmartPoi device is enabled by the <access origin="http://*" />
+             entry above, which cordova-ios maps to NSAllowsArbitraryLoads in Info.plist.
+             NOTE: "AllowArbitraryLoads" is NOT a recognised cordova-ios 8 preference, so it was
+             removed (it silently did nothing). -->
+        <!-- Required for local network access permission prompt on iOS 14+ -->
+        <edit-config file="*-Info.plist" mode="merge" target="NSLocalNetworkUsageDescription">
+            <string>This app connects to your SmartPoi device over your local Wi-Fi network.</string>
+        </edit-config>
+    </platform>
     <hook src="hooks/after_prepare/remove_manage_storage.js" type="after_prepare" />
 </widget>
