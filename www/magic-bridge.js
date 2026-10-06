@@ -348,7 +348,12 @@ async function handleTimelineZipSelected(timelineId) {
             try {
                 const blob = await zf.async('blob');
                 const originalFileName = zf.name.split('/').pop().trim();
-                return new File([blob], originalFileName, { type: 'application/octet-stream' });
+                // Do NOT use `new File(...)` here: cordova-plugin-file clobbers
+                // window.File, so it would return a non-Blob object and the
+                // FormData upload would fail with "parameter2 is not of type 'Blob'".
+                const uploadBlob = new Blob([blob], { type: 'application/octet-stream' });
+                uploadBlob.name = originalFileName;
+                return uploadBlob;
             } catch (e) {
                 console.warn('[MagicBridge] Failed to create blob from', zf.name, e);
                 return null;
@@ -713,6 +718,45 @@ async function verifyPoiConnectionMB(ip) {
 //       UPLOAD HELPERS
 // ============================
 
+/**
+ * Coerce a file entry into a genuine Blob of the current realm.
+ *
+ * FormData.append(name, value, filename) only accepts a real Blob/File for
+ * `value`; passing an ArrayBuffer, Uint8Array, string, or a Blob from a
+ * different implementation throws:
+ *   "Failed to execute 'append' on 'FormData': parameter2 is not of type 'Blob'"
+ */
+async function toUploadBlob(value, type = 'application/octet-stream') {
+    if (!value) {
+        throw new TypeError('[MagicBridge] Cannot upload empty/invalid file entry (' +
+            Object.prototype.toString.call(value) + ')');
+    }
+    if (value instanceof Blob) {
+        return value; // native File/Blob of this realm
+    }
+    if (value instanceof ArrayBuffer) {
+        console.warn('[MagicBridge] Upload entry was an ArrayBuffer; wrapping in a Blob');
+        return new Blob([value], { type });
+    }
+    if (ArrayBuffer.isView(value)) {
+        console.warn('[MagicBridge] Upload entry was a typed array; wrapping in a Blob');
+        return new Blob([value], { type });
+    }
+    if (typeof value === 'string') {
+        console.warn('[MagicBridge] Upload entry was a string; wrapping in a Blob');
+        return new Blob([value], { type });
+    }
+    if (typeof value.arrayBuffer === 'function') {
+        // Blob/File-like from another realm or library (e.g. legacy JSZip/BlobBuilder)
+        console.warn('[MagicBridge] Upload entry is a foreign Blob-like; rebuilding in current realm');
+        const buffer = await value.arrayBuffer();
+        return new Blob([buffer], { type: value.type || type });
+    }
+    throw new TypeError('[MagicBridge] Unsupported file entry for upload: ' +
+        Object.prototype.toString.call(value) +
+        (value && value.localURL ? ' (looks like a Cordova File; window.File was clobbered by cordova-plugin-file)' : ''));
+}
+
 async function uploadToPoiWithProgress(files, ip, label) {
     const statusEl = document.getElementById('upload-status-standalone');
     const config = state.magicBridge.CONFIG;
@@ -731,8 +775,9 @@ async function uploadToPoiWithProgress(files, ip, label) {
             for (let fileIndex = 0; fileIndex < batchFiles.length; fileIndex++) {
                 const file = batchFiles[fileIndex];
                 const targetName = generateUploadBinFilename(batchStart + fileIndex);
+                const uploadBlob = await toUploadBlob(file);
                 const formData = new FormData();
-                formData.append('file', file, targetName);
+                formData.append('file', uploadBlob, targetName);
 
                 await fetchWithAbort(`http://${ip}/edit`, {
                     method: 'POST',

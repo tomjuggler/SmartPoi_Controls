@@ -761,10 +761,10 @@ const TextTab = (function() {
                     return;
                 }
                 
-                const file = new File([blob], filename, {
-                    type: 'image/png',
-                    lastModified: Date.now()
-                });
+                // Do NOT use `new File(...)`: cordova-plugin-file clobbers
+                // window.File, so it returns a non-Blob and upload fails.
+                const file = new Blob([blob], { type: 'image/png' });
+                file.name = filename;
                 
                 resolve(file);
             }, 'image/png');

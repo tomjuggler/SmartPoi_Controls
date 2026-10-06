@@ -381,9 +381,11 @@ function initializeUploadHandlers() {
                             orderedBinFiles.map(async (file) => {
                                 const blob = await file.async('blob');
                                 const originalFileName = file.name.split('/').pop().trim();
-                                return new File([blob], originalFileName, {
-                                    type: 'application/octet-stream'
-                                });
+                                // Do NOT use `new File(...)`: cordova-plugin-file clobbers
+                                // window.File, so it returns a non-Blob and upload fails.
+                                const uploadBlob = new Blob([blob], { type: 'application/octet-stream' });
+                                uploadBlob.name = originalFileName;
+                                return uploadBlob;
                             })
                         );
                         
