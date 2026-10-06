@@ -45,3 +45,4 @@ development/
 upload-keystore.p12
 build.json
 .cecli*
+unsigned-ipa.zip
