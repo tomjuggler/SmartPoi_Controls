@@ -53,7 +53,7 @@ class DetectRouter: CDVPlugin {
     @objc(detectRouterIp:)
     func detectRouterIp(_ command: CDVInvokedUrlCommand) {
         // Detection blocks on the network stack, so keep it off the UI thread.
-        self.commandDelegate.runInBackground {
+        self.commandDelegate.run(inBackground: {
             // Mirrors the Android order: hotspot/AP first, then the Wi-Fi gateway.
             var ip = self.hotspotIPv4()
 
@@ -74,7 +74,7 @@ class DetectRouter: CDVPlugin {
             // sendPluginResult is documented as thread-safe, so it is fine to
             // call it here on the background thread.
             self.commandDelegate.send(result, callbackId: command.callbackId)
-        }
+        })
     }
 
     // MARK: - Hotspot / AP mode
