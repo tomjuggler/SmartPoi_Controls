@@ -5,7 +5,7 @@
   "license": "MIT",
   "cordova": {
     "id": "cordova-plugin-detectrouter",
-    "platforms": ["android"]
+    "platforms": ["android", "ios"]
   },
-  "keywords": ["ecosystem:cordova", "cordova-android", "smartpoi", "router", "gateway", "hotspot"]
+  "keywords": ["ecosystem:cordova", "cordova-android", "cordova-ios", "smartpoi", "router", "gateway", "hotspot"]
 }
